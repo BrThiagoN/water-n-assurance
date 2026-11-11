@@ -10,8 +10,8 @@ Projeto acadêmico desenvolvido para a **Global Solution CitizenTech 2026.2**, d
 |---|---|
 | Companhia | **water n' assurance** |
 | Produto | **Vigia d’Água** |
-| Cidade de implantação inicial planejada | São Paulo — SP |
-| Bairro de referência | **Vila Prudente, São Paulo — SP** |
+| Cidade e bairro do MVP inicial | **Vila Prudente, São Paulo — SP**, escolhido pela proximidade geográfica com a equipe para facilitar a aplicação e o acompanhamento do MVP. |
+| Caso real motivador | Relato familiar sobre alterações na água de poço em **Iguatu — CE**. |
 | Cidadão beneficiado | Moradores de casas e apartamentos interessados em acompanhar a água da própria residência. |
 | Problema | Dificuldade para perceber alterações na água e reunir informações compreensíveis para solicitar uma avaliação. |
 | Como a solução funcionará | Um dispositivo próximo ao registro acompanhará alguns parâmetros, apresentará avisos locais e disponibilizará registros em uma plataforma. |
@@ -32,7 +32,9 @@ O primeiro público é individual: moradores que desejam acompanhar a água da p
 
 ## Problema e motivação
 
-A ideia inclui um caso familiar relatado à equipe: uma moradora de Iguatu que utiliza água de poço já percebeu episódios de forte alteração de cor e sabor. A causa dessas alterações não foi confirmada por análises laboratoriais. O caso motivador é distinto da implantação inicial planejada em São Paulo.
+A ideia foi fortemente motivada por um caso familiar relatado à equipe: uma moradora de **Iguatu — CE** que utiliza água de poço já percebeu episódios de forte alteração de cor e sabor. A causa dessas alterações não foi confirmada por análises laboratoriais.
+
+**Vila Prudente, São Paulo — SP**, é o local planejado para facilitar a aplicação inicial do MVP pela proximidade geográfica com a equipe. Essa escolha organiza a execução e o acompanhamento do projeto; a proposta da companhia atende moradores de diferentes localidades.
 
 A investigação do projeto procura entender como o morador pode perceber mudanças, consultar seu contexto e reunir registros para solicitar uma avaliação, sem depender apenas de lembranças ou relatos dispersos.
 
