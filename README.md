@@ -159,4 +159,4 @@ Testes de compreensão com moradores, ensaios com sensores físicos e seleção 
 
 ## Documentação do uso de IA
 
-Este README foi preparado com apoio de inteligência artificial a partir das decisões e materiais do projeto. A equipe é responsável por revisar as informações e compreender as escolhas apresentadas. O registro do apoio de IA em cada implementação deverá acompanhar a documentação exigida pela respectiva disciplina.
+Usamos IA para organizar as ideias e ajudar na escrita deste README, com base no que definimos para o projeto. Cabe à nossa equipe conferir o conteúdo e entender as escolhas feitas. Durante o desenvolvimento, vamos registrar como a IA foi usada, seguindo as orientações de cada matéria.
