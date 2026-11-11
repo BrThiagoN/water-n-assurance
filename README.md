@@ -11,7 +11,7 @@ Projeto acadêmico desenvolvido para a **Global Solution CitizenTech 2026.2**, d
 | Companhia | **water n' assurance** |
 | Produto | **Vigia d’Água** |
 | Cidade de implantação inicial planejada | São Paulo — SP |
-| Bairro de referência | A definir pela equipe; ainda não há piloto físico selecionado. |
+| Bairro de referência | **Vila Prudente, São Paulo — SP** |
 | Cidadão beneficiado | Moradores de casas e apartamentos interessados em acompanhar a água da própria residência. |
 | Problema | Dificuldade para perceber alterações na água e reunir informações compreensíveis para solicitar uma avaliação. |
 | Como a solução funcionará | Um dispositivo próximo ao registro acompanhará alguns parâmetros, apresentará avisos locais e disponibilizará registros em uma plataforma. |
