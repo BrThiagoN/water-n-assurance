@@ -58,7 +58,7 @@ O MVP acadêmico planejado contempla **um ponto residencial simulado**.
 - Validar e suavizar leituras antes de classificar alterações.
 - Apresentar avisos locais com **palavra, símbolo e cor**.
 - Manter a decisão e o aviso do aparelho durante indisponibilidade de internet.
-- Registrar eventos com horário, ponto, valores e contexto de circulação.
+- Registrar eventos com ponto, valores e contexto de circulação; o protótipo usa tempo de operação, sem horário de calendário sincronizado.
 - Consultar estado, histórico e detalhes na plataforma.
 - Exportar registros por evento ou período.
 - Criar, consultar, atualizar e excluir acompanhamentos de demonstração, preservando os eventos e as leituras originais.
@@ -96,9 +96,9 @@ Selecionamos o [GECCO Industrial Challenge 2019, versão 2](https://doi.org/10.5
 
 A base oferece conjuntos de treino, teste e validação em ordem cronológica. Isso permite ajustar o algoritmo em uma parte e avaliá-lo em outra. **Ainda não executamos o algoritmo do Vigia d’Água nessa base.** O uso deverá respeitar as unidades e os intervalos originais; nem todo evento envolve os parâmetros acompanhados pelo nosso dispositivo. Vazão e pressão continuarão sendo cenários simulados quando não houver dados compatíveis.
 
-### Como vamos avaliar a interpretação dos dados
+### Avaliação da interpretação dos dados
 
-| Ensaio planejado | O que observar |
+| Ensaio | O que observar |
 |---|---|
 | Sinal estável e ruído | Quantos alertas surgem sem uma mudança persistente. |
 | Pico isolado e mudança breve | Se o filtro reduz interferências sem esconder eventos que queremos registrar. |
@@ -107,20 +107,24 @@ A base oferece conjuntos de treino, teste e validação em ordem cronológica. I
 | Parada e retomada de circulação | Como a avaliação é suspensa e retomada, incluindo observações durante a renovação da amostra. |
 | Séries públicas compatíveis | Desempenho fora dos cenários usados para ajustar o algoritmo. |
 
-Vamos comparar a média móvel atual com alternativas, começando pela mediana. Essa comparação ainda está pendente. Os limites **30 e 60** do índice óptico são parâmetros didáticos de demonstração; não foram estabelecidos pelos artigos e não correspondem a valores em NTU.
+A revisão 2 comparou média e mediana no mesmo motor C++, com cenários sintéticos. Em uma referência estável de 20 seguida de uma amostra 100, a média de cinco pontos chegou a 36 e a mediana permaneceu em 20. Com a nova regra que exige apoio da amostra bruta em cada confirmação, ambos os modos retornaram sem alerta confirmado após esse pico. A configuração do aparelho passou a usar **mediana de cinco amostras e três confirmações novas**, apoiadas pelo sinal bruto e pelo filtrado.
+
+Uma mudança ainda não confirmada fica identificada como observação provisória, inclusive durante a retomada do fluxo. Falhas de temperatura e pressão são informadas por canal, preservando os outros valores; a classificação óptica exige óptica e vazão utilizáveis. Os ensaios interativos da revisão 2 verificaram esses comportamentos, além de dado antigo, recuperação, silêncio e reset. A avaliação com a base pública e a ampliação dos cenários de ruído continuam pendentes.
+
+Os limites **30 e 60** do índice óptico são parâmetros didáticos de demonstração; não foram estabelecidos pelos artigos e não correspondem a valores em NTU. A comparação controlada dos filtros não demonstra superioridade em toda condição de uso.
 
 A avaliação desta etapa cobre o comportamento do software em condições declaradas. A precisão das sondas físicas e o desempenho em uma instalação hidráulica ficam para uma etapa posterior.
 
-## Estados propostos do aparelho
+## Estados do aparelho
 
-| Estado | Mensagem de apoio | Indicação planejada |
+| Estado | Mensagem de apoio | Indicação no protótipo |
 |---|---|---|
 | Sem alteração detectada | Nos parâmetros acompanhados | Palavra, símbolo de confirmação e verde. |
 | Atenção | Mudança em observação | Palavra, triângulo e amarelo. |
 | Verifique | Mudança persistente | Palavra, exclamação e vermelho. |
-| Leitura indisponível | Confira o aparelho | Palavra, símbolo de falha e cinza. |
+| Leitura indisponível | Motivo da suspensão ou confirmação em andamento | Palavra, símbolo e indicação neutra intermitente. |
 
-Os significados também serão mantidos na plataforma. A cor será complementar: texto e símbolo precisam permitir a compreensão do aviso. Falta de leitura não deverá aparecer como normalidade.
+Os significados também serão mantidos na plataforma. Texto e símbolo acompanham a cor. Falta de leitura não aparece como normalidade. Durante a confirmação de uma mudança, o aparelho distingue o sinal provisório do último estado confirmado.
 
 ## Arquitetura planejada
 
@@ -159,7 +163,7 @@ O circuito e o firmware têm uma versão funcional no Wokwi. Backend, API e plat
 | Pesquisa exploratória | Primeiras 18 respostas analisadas; coleta em andamento. |
 | Software & Total Experience Design | Apresentação de 16 slides preparada e revisada fora deste repositório. |
 | Storytelling e Inspiração Empreendedora | A desenvolver. |
-| Edge Computing & Computer Systems | Circuito e firmware executados no Wokwi, com 41 autotestes aprovados na revisão registrada em 11/11. Revisão da interpretação dos dados e integração ao backend pendentes. |
+| Edge Computing & Computer Systems | Revisão 2 executada no Wokwi em 12/11, com 56 autotestes aprovados e ensaios interativos registrados. Integração ao backend e avaliação com dados públicos pendentes. |
 | Computational Thinking with Python | A implementar. |
 | Differentiated Problem Solving | Modelagem e relatório a desenvolver conforme as questões da avaliação. |
 | Front-end Design e Web Development | Aplicação compartilhada a implementar, com entregas acadêmicas separadas. |
@@ -175,7 +179,11 @@ Este repositório reúne a documentação do projeto. Ainda não há aplicação
 
 ### Simulação do dispositivo
 
-O [protótipo no Wokwi](https://wokwi.com/projects/480416382701050881) contém o circuito e o firmware ESP32. Os autotestes são executados no início e apresentam o resultado no Serial Monitor. A revisão registrada em **11/11/2026** compilou e executou **41 testes aprovados e zero falhas**, sendo 35 do motor de decisão e seis dos encoders JSON. Também foram observados os estados locais, histerese, silêncio, falta e retorno de fluxo, falha, dado antigo e reset.
+O [protótipo no Wokwi](https://wokwi.com/projects/480416382701050881) contém o circuito e o firmware ESP32. Os autotestes são executados no início e apresentam o resultado no Serial Monitor. A **revisão 2, de 12/11/2026**, compilou e executou **56 testes aprovados e zero falhas**, sendo 45 do motor de decisão e 11 dos encoders JSON.
+
+Também foram executados ensaios interativos de pulsos com uma e duas amostras, alterações persistentes, falhas individuais dos canais, chave óptica, botão de silêncio, falta e retorno de fluxo, dado antigo, recuperação offline, comandos inválidos e reset. Os pulsos voltaram à referência sem alerta confirmado. As falhas contextuais preservaram a avaliação óptica; as falhas críticas a suspenderam. A revisão anterior, de 11/11, havia passado em 41 autotestes.
+
+O Serial aceita `HELP` e `STATUS`. Para demonstrar um pico controlado, `TEST PULSE 100 1` injeta o índice 100 por uma amostra; `TEST FAULT TEMP ON` declara uma falha de temperatura, e `TEST FAULT TEMP OFF` a retira. Esses comandos são testes explícitos. O firmware identifica dados simulados, overrides e a versão da regra, `median5-raw3-v2`.
 
 Esse resultado é de uma simulação, com entradas sintéticas. Não comprova precisão de sondas físicas, calibração ou entrega de dados ao backend. O host MQTT permanece como `localhost:1883`, reservado para configuração posterior; no ESP32, esse nome aponta para o próprio dispositivo. O processamento local continua sem conexão.
 
@@ -185,11 +193,11 @@ Links de deploy e vídeos serão incluídos quando estiverem disponíveis. Novas
 
 1. Dividir as frentes de trabalho e combinar formato de dados, unidades, identificadores e estados.
 2. Preparar o documento de marca, os slides e o videopitch de Storytelling.
-3. Revisar a interpretação local dos dados, comparar filtros e repetir os cenários no Wokwi.
+3. Ampliar os cenários de ruído e mudanças breves, mantendo os resultados de cada revisão do firmware.
 4. Configurar o backend IoT e verificar o caminho ESP32 → backend → painel.
 5. Desenvolver a aplicação web com CRUD externo e histórico real de commits.
 6. Desenvolver o programa Python e a análise matemática de DPS em paralelo.
-7. Avaliar o uso das séries públicas, documentar os resultados dos testes e finalizar as entregas de cada disciplina.
+7. Avaliar as séries públicas compatíveis, consolidar os registros e finalizar as entregas de cada disciplina.
 
 Testes de compreensão com moradores, ensaios com sensores físicos e seleção de um local para piloto fazem parte da continuidade planejada. Não são apresentados como atividades já realizadas.
 
