@@ -163,7 +163,7 @@ O circuito e o firmware têm uma versão funcional no Wokwi. Backend, API e plat
 | Pesquisa exploratória | Primeiras 18 respostas analisadas; coleta em andamento. |
 | Software & Total Experience Design | Apresentação de 16 slides preparada e revisada fora deste repositório. |
 | Storytelling e Inspiração Empreendedora | A desenvolver. |
-| Edge Computing & Computer Systems | Revisão 2 executada no Wokwi em 12/11, com 56 autotestes aprovados e ensaios interativos registrados. Integração ao backend e avaliação com dados públicos pendentes. |
+| Edge Computing & Computer Systems | Revisão 3 executada no Wokwi em 12/11, com 66 autotestes aprovados, alarme contínuo até silenciar e ensaios interativos registrados. Integração ao backend e avaliação com dados públicos pendentes. |
 | Computational Thinking with Python | A implementar. |
 | Differentiated Problem Solving | Modelagem e relatório a desenvolver conforme as questões da avaliação. |
 | Front-end Design e Web Development | Aplicação compartilhada a implementar, com entregas acadêmicas separadas. |
@@ -179,9 +179,13 @@ Este repositório reúne a documentação do projeto. Ainda não há aplicação
 
 ### Simulação do dispositivo
 
-O [protótipo no Wokwi](https://wokwi.com/projects/480416382701050881) contém o circuito e o firmware ESP32. Os autotestes são executados no início e apresentam o resultado no Serial Monitor. A **revisão 2, de 12/11/2026**, compilou e executou **56 testes aprovados e zero falhas**, sendo 45 do motor de decisão e 11 dos encoders JSON.
+O [protótipo no Wokwi](https://wokwi.com/projects/480416382701050881) contém o circuito e o firmware ESP32. Os autotestes são executados no início e apresentam o resultado no Serial Monitor. A **revisão 3, de 12/11/2026**, compilou e executou **66 testes aprovados e zero falhas**, sendo 55 do motor de decisão e da política de alarme e 11 dos encoders JSON. Os dez novos casos verificam o reconhecimento e o rearme do aviso sonoro.
 
-Também foram executados ensaios interativos de pulsos com uma e duas amostras, alterações persistentes, falhas individuais dos canais, chave óptica, botão de silêncio, falta e retorno de fluxo, dado antigo, recuperação offline, comandos inválidos e reset. Os pulsos voltaram à referência sem alerta confirmado. As falhas contextuais preservaram a avaliação óptica; as falhas críticas a suspenderam. A revisão anterior, de 11/11, havia passado em 41 autotestes.
+Também foram executados ensaios interativos de pulsos com uma e duas amostras, alterações persistentes, falhas individuais dos canais, chave óptica, botão de silêncio, falta e retorno de fluxo, dado antigo, recuperação offline, comandos inválidos e reset. Os pulsos voltaram à referência sem alerta confirmado. As falhas contextuais preservaram a avaliação óptica; as falhas críticas a suspenderam. A revisão 2 havia passado em 56 autotestes; esses casos foram repetidos na revisão 3.
+
+Ao confirmar **Atenção** ou **Verifique**, o ESP32 mantém o buzzer tocando até a pessoa pressionar **Silenciar**. A normalização da leitura ou a suspensão da avaliação não reconhecem automaticamente uma ocorrência pendente. Silenciar corta o som e preserva o estado visual e os registros. Uma nova ocorrência após normalização, ou a subida de Atenção para Verifique, rearma o alarme. Observações provisórias não acionam esse aviso; falhas técnicas mantêm o aviso curto quando não há uma alteração pendente.
+
+No ensaio da revisão 3, 44 amostras consecutivas abrangeram **43 segundos do relógio do ESP32** com o alarme ativo. Também foram verificados a normalização antes do reconhecimento, o botão físico Silenciar, uma nova ocorrência e a escalada para Verifique. O Serial expõe `alarm_policy=continuous-until-ack`, `alarm_latched` e `buzzer_on`. São registros do estado e do comando ao piezo, sem medição acústica. A ausência de prazo automático foi conferida no código e nos autotestes; os 43 segundos não constituem um ensaio de durabilidade.
 
 O Serial aceita `HELP` e `STATUS`. Para demonstrar um pico controlado, `TEST PULSE 100 1` injeta o índice 100 por uma amostra; `TEST FAULT TEMP ON` declara uma falha de temperatura, e `TEST FAULT TEMP OFF` a retira. Esses comandos são testes explícitos. O firmware identifica dados simulados, overrides e a versão da regra, `median5-raw3-v2`.
 
