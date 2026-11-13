@@ -223,6 +223,7 @@ Referências consultadas em 12/11/2026.
 | Thiago Gomes Nascimento | RM569436 |
 | Rafael De Sousa | RM568777 |
 | Vitor Assis Florenzano | RM572192 |
+| Raul Moreira Andrade | RM571042 |
 
 ## Documentação do uso de IA
 
