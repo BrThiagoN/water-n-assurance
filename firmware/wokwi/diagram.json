@@ -1,0 +1,219 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": -30, "left": -95, "attrs": {} },
+    {
+      "type": "wokwi-ds18b20",
+      "id": "temp1",
+      "top": -82,
+      "left": -350,
+      "attrs": { "temperature": "25" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot1",
+      "top": 6,
+      "left": -345,
+      "attrs": { "value": "102" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot2",
+      "top": 106,
+      "left": -345,
+      "attrs": { "value": "307" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot3",
+      "top": 206,
+      "left": -345,
+      "attrs": { "value": "341" }
+    },
+    {
+      "type": "board-ssd1306",
+      "id": "oled1",
+      "top": -78,
+      "left": 120,
+      "attrs": { "i2cAddress": "0x3c" }
+    },
+    {
+      "type": "wokwi-rgb-led",
+      "id": "rgb1",
+      "top": 46,
+      "left": 135,
+      "attrs": { "common": "cathode" }
+    },
+    { "type": "wokwi-buzzer", "id": "bz1", "top": 186, "left": 135, "attrs": { "volume": "0.1" } },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": 210,
+      "left": -95,
+      "attrs": { "color": "green", "xray": "1" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": -46,
+      "left": -285,
+      "attrs": { "value": "4700" }
+    },
+    { "type": "wokwi-resistor", "id": "r2", "top": 90, "left": 80, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r3", "top": 110, "left": 80, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r4", "top": 130, "left": 80, "attrs": { "value": "220" } },
+    { "type": "wokwi-slide-switch", "id": "sw1", "top": 215.6, "left": 12.7, "attrs": {} },
+    {
+      "type": "wokwi-text",
+      "id": "text1",
+      "top": -205,
+      "left": -355,
+      "attrs": { "text": "VIGIA D’ÁGUA — CIRCUITO" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_inputs",
+      "top": -160,
+      "left": -355,
+      "attrs": { "text": "ENTRADAS" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_temp",
+      "top": -82,
+      "left": -305,
+      "attrs": { "text": "Temperatura" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_pullup",
+      "top": -54,
+      "left": -215,
+      "attrs": { "text": "4,7 kΩ" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_optical",
+      "top": -12,
+      "left": -355,
+      "attrs": { "text": "Óptica (simulada)" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_flow",
+      "top": 88,
+      "left": -355,
+      "attrs": { "text": "Vazão (simulada)" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_pressure",
+      "top": 188,
+      "left": -355,
+      "attrs": { "text": "Pressão (simulada)" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_esp",
+      "top": -58,
+      "left": -95,
+      "attrs": { "text": "ESP32" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_outputs",
+      "top": -160,
+      "left": 120,
+      "attrs": { "text": "SAÍDAS" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_oled",
+      "top": 8,
+      "left": 120,
+      "attrs": { "text": "Display OLED" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_rgb",
+      "top": 26,
+      "left": 120,
+      "attrs": { "text": "LED RGB" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_resistors",
+      "top": 150,
+      "left": 95,
+      "attrs": { "text": "3 × 220 Ω" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_buzzer",
+      "top": 168,
+      "left": 125,
+      "attrs": { "text": "Buzzer" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_mute",
+      "top": 190,
+      "left": -100,
+      "attrs": { "text": "Silenciar" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_fault",
+      "top": 190,
+      "left": 0,
+      "attrs": { "text": "Falha simulada" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "label_stage",
+      "top": 326.4,
+      "left": -192,
+      "attrs": { "text": "Alimentação: 3,3 V · Terra comum" }
+    },
+    { "type": "wokwi-slide-switch", "id": "sw2", "top": -130, "left": -179.3, "attrs": {} }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "esp:3V3", "temp1:VCC", "red", [ "h-35", "v-100" ] ],
+    [ "esp:GND.1", "pot3:GND", "black", [ "h-45", "v170" ] ],
+    [ "temp1:GND", "pot1:GND", "black", [ "v12", "h-55", "*", "v12", "h-55" ] ],
+    [ "pot1:GND", "pot2:GND", "black", [ "v12", "h-55", "*", "v12", "h-55" ] ],
+    [ "pot2:GND", "pot3:GND", "black", [ "v12", "h-55", "*", "v12", "h-55" ] ],
+    [ "temp1:VCC", "pot1:VCC", "red", [ "v6", "h-100", "*", "v6", "h-100" ] ],
+    [ "pot1:VCC", "pot2:VCC", "red", [ "v6", "h-100", "*", "v6", "h-100" ] ],
+    [ "pot2:VCC", "pot3:VCC", "red", [ "v6", "h-100", "*", "v6", "h-100" ] ],
+    [ "temp1:DQ", "esp:4", "green", [ "v12", "h180", "v-105", "h160", "*", "h25" ] ],
+    [ "temp1:VCC", "r1:1", "red", [ "v8" ] ],
+    [ "r1:2", "temp1:DQ", "green", [ "v15" ] ],
+    [ "pot1:SIG", "esp:32", "yellow", [ "v8", "h130", "*", "h-35" ] ],
+    [ "pot2:SIG", "esp:33", "orange", [ "v8", "h145", "*", "h-25" ] ],
+    [ "pot3:SIG", "esp:34", "purple", [ "v8", "h160", "*", "h-15" ] ],
+    [ "oled1:VCC", "esp:3V3", "red", [ "v-28", "h-300", "*", "h-45", "v-65" ] ],
+    [ "oled1:GND", "esp:GND.2", "black", [ "v-40", "h-60" ] ],
+    [ "oled1:SDA", "esp:21", "blue", [ "v-16", "h-65", "*", "h30" ] ],
+    [ "oled1:SCL", "esp:22", "cyan", [ "v-22", "h-80", "*", "h20" ] ],
+    [ "esp:16", "r2:1", "red", [ "h30" ] ],
+    [ "r2:2", "rgb1:R", "red", [ "h18" ] ],
+    [ "esp:17", "r3:1", "green", [ "h40" ] ],
+    [ "r3:2", "rgb1:G", "green", [ "h28" ] ],
+    [ "esp:18", "r4:1", "blue", [ "h50" ] ],
+    [ "r4:2", "rgb1:B", "blue", [ "h38" ] ],
+    [ "rgb1:COM", "esp:GND.3", "black", [ "v14", "h-45" ] ],
+    [ "bz1:2", "esp:25", "orange", [ "v25", "h-190", "*", "h-45" ] ],
+    [ "bz1:1", "esp:GND.3", "black", [ "v36", "h-90", "*", "h65" ] ],
+    [ "btn1:1.l", "esp:27", "gray", [ "h-35", "*", "h-25" ] ],
+    [ "btn1:2.l", "esp:GND.1", "black", [ "h-50", "v25", "*", "h-60" ] ],
+    [ "sw1:2", "esp:26", "magenta", [ "v20", "h-125", "*", "h-35" ] ],
+    [ "sw1:3", "btn1:2.r", "black", [ "v30" ] ]
+  ],
+  "serialMonitor": { "display": "always", "newline": "lf" },
+  "dependencies": {}
+}

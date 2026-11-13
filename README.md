@@ -153,7 +153,7 @@ Sensores ou entradas simuladas
 
 A validação, a interpretação e os avisos do aparelho são locais. O backend recebe os valores e o estado já calculado pelo ESP32; sua indisponibilidade não deve interromper a avaliação. A aplicação Python fará análises separadas da decisão em tempo real.
 
-O circuito e o firmware têm uma versão funcional no Wokwi. Backend, API e plataforma web ainda estão no planejamento, e o firmware ainda não foi incorporado aos arquivos deste repositório.
+O protótipo está disponível no [Wokwi](https://wokwi.com/projects/480416382701050881), e o circuito e o firmware estão espelhados em [firmware/wokwi/](firmware/wokwi/README.md). A integração com backend/API e a plataforma web continuam pendentes.
 
 ## Estado do projeto
 
@@ -163,7 +163,7 @@ O circuito e o firmware têm uma versão funcional no Wokwi. Backend, API e plat
 | Pesquisa exploratória | Primeiras 18 respostas analisadas; coleta em andamento. |
 | Software & Total Experience Design | Apresentação de 16 slides preparada e revisada fora deste repositório. |
 | Storytelling e Inspiração Empreendedora | A desenvolver. |
-| Edge Computing & Computer Systems | Revisão 3 executada no Wokwi em 12/11, com 69 autotestes aprovados e o botão físico alternando entre silenciar e reativar o alarme. Integração ao backend e avaliação com dados públicos pendentes. |
+| Edge Computing & Computer Systems | Revisão 3 executada no Wokwi em 12/11, com 69 autotestes aprovados e o botão físico alternando entre silenciar e reativar o alarme. Firmware e diagrama versionados em firmware/wokwi/. Backend, vídeo da disciplina e avaliação com dados públicos pendentes. |
 | Computational Thinking with Python | A implementar. |
 | Differentiated Problem Solving | Modelagem e relatório a desenvolver conforme as questões da avaliação. |
 | Front-end Design e Web Development | Aplicação compartilhada a implementar, com entregas acadêmicas separadas. |
@@ -175,11 +175,13 @@ git clone https://github.com/BrThiagoN/water-n-assurance.git
 cd water-n-assurance
 ```
 
-Este repositório reúne a documentação do projeto. Ainda não há aplicação web ou backend para instalar. As instruções de ambiente e execução serão incluídas junto ao código de cada parte.
+O snapshot do firmware, do diagrama e das dependências está em [firmware/wokwi/](firmware/wokwi/README.md), com os resultados de teste em [firmware/wokwi/TESTES.md](firmware/wokwi/TESTES.md). O projeto Wokwi público continua sendo a simulação principal. Backend IoT, API e painel web ainda não estão configurados.
 
 ### Simulação do dispositivo
 
-O [protótipo no Wokwi](https://wokwi.com/projects/480416382701050881) contém o circuito e o firmware ESP32. Os autotestes são executados no início e apresentam o resultado no Serial Monitor. A **revisão 3, de 12/11/2026**, compilou e executou **69 testes aprovados e zero falhas**, sendo 58 do motor de decisão e da política de alarme e 11 dos encoders JSON. Os 13 casos novos cobrem o reconhecimento e a reativação do aviso.
+O briefing da disciplina pede um projeto Wokwi público que abra e rode e um vídeo de equipe de até sete minutos, com explicação do circuito e demonstração dos estados. O vídeo continua pendente; este repositório facilita a revisão do código, mas não substitui os links de entrega.
+
+O código e as evidências desta revisão também estão em [firmware/wokwi/](firmware/wokwi/README.md). O [protótipo no Wokwi](https://wokwi.com/projects/480416382701050881) contém o circuito e o firmware ESP32. Os autotestes são executados no início e apresentam o resultado no Serial Monitor. A **revisão 3, de 12/11/2026**, compilou e executou **69 testes aprovados e zero falhas**, sendo 58 do motor de decisão e da política de alarme e 11 dos encoders JSON. Os 13 casos novos cobrem o reconhecimento e a reativação do aviso.
 
 Também foram executados ensaios interativos de pulsos com uma e duas amostras, alterações persistentes, falhas individuais dos canais, chave óptica, botão de silêncio, falta e retorno de fluxo, dado antigo, recuperação offline, comandos inválidos e reset. Os pulsos voltaram à referência sem alerta confirmado. As falhas contextuais preservaram a avaliação óptica; as falhas críticas a suspenderam. Os 66 casos da versão anterior foram repetidos; três testes novos cobrem o segundo clique, a normalização e uma avaliação indisponível.
 
