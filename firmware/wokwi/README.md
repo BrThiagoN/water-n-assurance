@@ -4,7 +4,7 @@ Este diretório espelha os arquivos do [protótipo público no Wokwi](https://wo
 
 ## Circuito no Wokwi
 
-![Circuito do Vigia d’Água no Wokwi](evidence/circuito-wokwi.png)
+![Circuito do Vigia d’Água no Wokwi](assets/circuito-wokwi.png)
 
 ## O que o dispositivo simula
 
