@@ -1,6 +1,10 @@
 # Vigia d’Água — protótipo ESP32 no Wokwi
 
-Este diretório espelha os arquivos do [protótipo público no Wokwi](https://wokwi.com/projects/480416382701050881), revisão 3. Ele permite revisar o sketch, o diagrama, as dependências e os testes junto com a documentação do projeto.
+Este diretório espelha os arquivos do [protótipo público no Wokwi](https://wokwi.com/projects/480416382701050881), revisão 3. Ele reúne o código, o diagrama, as dependências e uma captura do circuito.
+
+## Circuito no Wokwi
+
+![Circuito do Vigia d’Água no Wokwi](evidence/circuito-wokwi.png)
 
 ## O que o dispositivo simula
 
@@ -40,7 +44,7 @@ Os oito arquivos de circuito, código e dependências precisam permanecer no mes
 - network.h e network.cpp — telemetria preparada para configuração posterior;
 - libraries.txt — dependências do Wokwi.
 
-Abra o projeto público, inicie a simulação e confira os resultados no Serial Monitor. O projeto está salvo no Wokwi; estes arquivos no GitHub são o espelho versionado para leitura e revisão. TESTES.md resume os testes executados e aponta as evidências desta revisão.
+Abra o projeto público, inicie a simulação e confira os resultados no Serial Monitor. O projeto está salvo no Wokwi; estes arquivos no GitHub são o espelho versionado para leitura e revisão.
 
 A rede não é necessária para a leitura, classificação ou alarme local. O host MQTT está como localhost:1883, aguardando configuração: no ESP32, localhost é o próprio dispositivo e ainda não existe um broker conectado. Não há credenciais reais no firmware.
 
