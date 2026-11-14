@@ -4,6 +4,81 @@
 
 Projeto acadêmico desenvolvido para a **Global Solution CitizenTech 2026.2**, do curso de **Engenharia de Software da FIAP**, turma **1ESPV-2026**.
 
+## Comece por aqui
+
+| Quero... | Caminho |
+|---|---|
+| Experimentar o aparelho sem instalar ferramentas | Siga o teste rápido abaixo. |
+| Criar minha própria cópia usando os arquivos do GitHub | Veja o [guia de reprodução do firmware](firmware/wokwi/README.md). |
+| Repetir os estados, falhas e comandos | Abra o [roteiro de testes](firmware/wokwi/TESTES.md). |
+| Continuar o backend no Linux | Siga o [plano de Node-RED, MQTT, FIWARE e histórico](docs/gsBackendLinux.md). |
+
+**O que já pode ser executado:** a simulação do dispositivo no Wokwi, com interpretação, display, LED, alarme e comandos de teste locais. Backend, banco de histórico e painel ainda precisam ser implementados; o guia de Linux descreve essa próxima etapa.
+
+## Teste rápido no Wokwi
+
+Você precisa de um navegador com internet. A simulação pronta dispensa instalar Arduino IDE, Node.js ou Docker no computador.
+
+1. Abra o [Vigia d’Água no Wokwi](https://wokwi.com/projects/480416382701050881).
+2. Clique em **iniciar a simulação**, no botão com o triângulo de reprodução, e aguarde a compilação.
+3. Abra o **Serial Monitor** e localize a linha de resumo dos autotestes. A revisão 3 tem como referência `[TEST] SUMMARY passed=69 failed=0 result=PASS`. Se houver `FAIL` ou erro de compilação, consulte o [guia de solução de problemas](firmware/wokwi/README.md).
+4. No campo de entrada do Serial Monitor, envie os comandos abaixo **um por vez**, confirmando cada linha com Enter. Não digite esses comandos no terminal do Linux.
+
+```text
+RESET
+TEST NET OFF
+TEST FLOW 6
+TEST OPTICAL 20
+```
+
+5. Aguarde cerca de **15 segundos de simulação**, mantendo a chave de falha na posição sem falha, e envie:
+
+```text
+STATUS
+```
+
+**Resultado esperado:** OLED com “Sem alteração detectada”, LED verde e JSON no Serial contendo `"state":"NO_CHANGE"` e `"assessment_available":true`. Mensagens de inicialização, renovação da amostra e confirmação são esperadas antes de estabilizar.
+
+O indicador `OFF` da rede é esperado neste teste. A conexão foi desativada para observar o comportamento local; mesmo habilitada, a configuração atual ainda aponta para um broker não provisionado.
+
+### Faça os primeiros experimentos
+
+Partindo do teste rápido acima, envie cada comando, aguarde a estabilização e use `STATUS` para conferir:
+
+| Experimento | Comando no Serial | O que deve acontecer |
+|---|---|---|
+| Mudança moderada persistente | `TEST OPTICAL 40` | Após a confirmação, **Atenção**, LED amarelo e aviso sonoro. |
+| Mudança mais intensa persistente | `TEST OPTICAL 80` | Após a confirmação, **Verifique**, LED vermelho e aviso sonoro. |
+| Falha na entrada óptica | `TEST FAULT OPTICAL ON` | **Leitura indisponível**, com motivo de falha. |
+| Recuperação dessa entrada | `TEST FAULT OPTICAL OFF` | Nova estabilização e retorno ao estado correspondente à entrada ainda selecionada. |
+| Voltar a uma referência baixa | `TEST OPTICAL 20` | Retorno a **Sem alteração detectada** após filtro e confirmações; um alarme pendente continua exigindo reconhecimento. |
+
+Para as alterações ópticas, reserve cerca de 10 segundos de simulação; para recuperação e retorno à referência, reserve cerca de 15. Esses tempos são margens para o roteiro, não prazos garantidos nem limites sanitários.
+
+Pressione o botão **Silenciar** do circuito para reconhecer o aviso. Enquanto a alteração continuar confirmada, um segundo clique reativa o som. O comando `MUTE` apenas silencia; ele não substitui esse teste dos dois cliques.
+
+Ao terminar, envie `TEST OPTICAL OFF` e `TEST FLOW OFF` para devolver o controle aos potenciômetros. O [roteiro completo](firmware/wokwi/TESTES.md) explica preparação, resultados e recuperação de cada cenário.
+
+## Clonar e continuar no Linux
+
+Para consultar ou editar os arquivos localmente, com Git instalado:
+
+```bash
+git clone https://github.com/BrThiagoN/water-n-assurance.git
+cd water-n-assurance
+```
+
+| Arquivo ou pasta | Para que serve |
+|---|---|
+| [firmware/wokwi/](firmware/wokwi/README.md) | Código, circuito e instruções para reconstruir a simulação. |
+| [firmware/wokwi/libraries.txt](firmware/wokwi/libraries.txt) | Bibliotecas utilizadas pelo projeto no Wokwi. |
+| [firmware/wokwi/TESTES.md](firmware/wokwi/TESTES.md) | Comandos de teste, critérios de conferência e registro anterior da revisão 3. |
+| [docs/gsBackendLinux.md](docs/gsBackendLinux.md) | Arquitetura e ordem de implementação do backend no Linux. |
+
+Clonar o repo baixa os arquivos. A execução atual do firmware é pelo Wokwi no navegador; este repositório ainda não contém configuração de build para Arduino CLI/PlatformIO, nem um servidor que seja iniciado com `npm start` ou `docker compose up`.
+
+O guia de Linux inclui um início isolado do Node-RED e distingue isso do ambiente completo que ainda será criado. Uma montagem com sensores físicos e água também exigirá desenvolvimento e validação além desta simulação.
+
 ## Ficha da CitizenTech
 
 | Campo | Definição |
@@ -145,7 +220,7 @@ Sensores ou entradas simuladas
 | Parte | Responsabilidade | Tecnologia prevista |
 |---|---|---|
 | Dispositivo | Ler entradas, validar, suavizar, classificar e sinalizar localmente. | ESP32 e simulação no Wokwi. |
-| Backend IoT | Receber e disponibilizar as leituras do dispositivo. | FIWARE ou IoT Cloud, a definir. |
+| Backend IoT | Receber e disponibilizar as leituras do dispositivo. | Proposta: Node-RED, broker MQTT e FIWARE Orion; implementação pendente. |
 | API de acompanhamentos | Persistir e disponibilizar operações de CRUD. | Serviço externo, a definir. |
 | Plataforma web | Apresentar o ponto, o histórico, os eventos e as providências. | React com Vite ou Next.js e Tailwind CSS, a definir na implementação. |
 | Aplicação Python | Processar dados, organizar consultas e persistir registros de demonstração. | Python e arquivos JSON. |
@@ -157,7 +232,7 @@ O protótipo está disponível no [Wokwi](https://wokwi.com/projects/48041638270
 
 ## Estado do projeto
 
-| Frente | Estado em 12/11/2026 |
+| Frente | Situação registrada em 14/11/2026 |
 |---|---|
 | Identidade da companhia e do produto | Definida. |
 | Pesquisa exploratória | Primeiras 18 respostas analisadas; coleta em andamento. |
@@ -168,39 +243,20 @@ O protótipo está disponível no [Wokwi](https://wokwi.com/projects/48041638270
 | Differentiated Problem Solving | Modelagem e relatório a desenvolver conforme as questões da avaliação. |
 | Front-end Design e Web Development | Aplicação compartilhada a implementar, com entregas acadêmicas separadas. |
 
-## Acesso ao repositório
+## Reprodução e validação
 
-```bash
-git clone https://github.com/BrThiagoN/water-n-assurance.git
-cd water-n-assurance
-```
+O [guia do firmware](firmware/wokwi/README.md) explica os oito arquivos necessários, as bibliotecas, o circuito e como reconstruir o projeto no Wokwi. O [roteiro de testes](firmware/wokwi/TESTES.md) detalha os cenários e diferencia resultados esperados dos resultados registrados anteriormente.
 
-O snapshot do firmware, do diagrama e das dependências está em [firmware/wokwi/](firmware/wokwi/README.md), com os resultados de teste em [firmware/wokwi/TESTES.md](firmware/wokwi/TESTES.md). O projeto Wokwi público continua sendo a simulação principal. Backend IoT, API e painel web ainda não estão configurados.
+A revisão 3 foi registrada em 12/11/2026 com **69 autotestes aprovados e zero falhas**. A atualização da documentação em 14/11/2026 conferiu as instruções contra o código, sem repetir a execução do Wokwi. Novas execuções devem registrar seu próprio resumo, versões e evidências.
 
-### Simulação do dispositivo
-
-O briefing da disciplina pede um projeto Wokwi público que abra e rode e um vídeo de equipe de até sete minutos, com explicação do circuito e demonstração dos estados. O vídeo continua pendente; este repositório facilita a revisão do código, mas não substitui os links de entrega.
-
-O código e as evidências desta revisão também estão em [firmware/wokwi/](firmware/wokwi/README.md). O [protótipo no Wokwi](https://wokwi.com/projects/480416382701050881) contém o circuito e o firmware ESP32. Os autotestes são executados no início e apresentam o resultado no Serial Monitor. A **revisão 3, de 12/11/2026**, compilou e executou **69 testes aprovados e zero falhas**, sendo 58 do motor de decisão e da política de alarme e 11 dos encoders JSON. Os 13 casos novos cobrem o reconhecimento e a reativação do aviso.
-
-Também foram executados ensaios interativos de pulsos com uma e duas amostras, alterações persistentes, falhas individuais dos canais, chave óptica, botão de silêncio, falta e retorno de fluxo, dado antigo, recuperação offline, comandos inválidos e reset. Os pulsos voltaram à referência sem alerta confirmado. As falhas contextuais preservaram a avaliação óptica; as falhas críticas a suspenderam. Os 66 casos da versão anterior foram repetidos; três testes novos cobrem o segundo clique, a normalização e uma avaliação indisponível.
-
-Ao confirmar **Atenção** ou **Verifique**, o ESP32 mantém o buzzer tocando até a pessoa pressionar **Silenciar**. A normalização da leitura ou a suspensão da avaliação não reconhecem automaticamente uma ocorrência pendente. Silenciar corta o som e preserva o estado visual e os registros. Se a mesma condição ainda estiver confirmada, o segundo clique reativa o buzzer. Depois da normalização, o clique apenas deixa o som habilitado para os próximos avisos. Uma nova ocorrência ou a subida de Atenção para Verifique também rearma o alarme. Observações provisórias não acionam esse aviso; falhas técnicas mantêm o aviso curto quando não há uma alteração pendente.
-
-No ensaio da revisão 3, 44 amostras consecutivas abrangeram **43 segundos do relógio do ESP32** com o alarme ativo. Também foram verificados a normalização antes do reconhecimento, os dois cliques do botão físico, uma nova ocorrência e a escalada para Verifique. O Serial expõe `alarm_policy=continuous-until-ack`, `alarm_latched` e `buzzer_on`. São registros do estado e do comando ao piezo, sem medição acústica. A ausência de prazo automático foi conferida no código e nos autotestes; os 43 segundos não constituem um ensaio de durabilidade.
-
-O Serial aceita `HELP` e `STATUS`. Para demonstrar um pico controlado, `TEST PULSE 100 1` injeta o índice 100 por uma amostra; `TEST FAULT TEMP ON` declara uma falha de temperatura, e `TEST FAULT TEMP OFF` a retira. Esses comandos são testes explícitos. O firmware identifica dados simulados, overrides e a versão da regra, `median5-raw3-v2`.
-
-Esse resultado é de uma simulação, com entradas sintéticas. Não comprova precisão de sondas físicas, calibração ou entrega de dados ao backend. O host MQTT permanece como `localhost:1883`, reservado para configuração posterior; no ESP32, esse nome aponta para o próprio dispositivo. O processamento local continua sem conexão.
-
-Links de deploy e vídeos serão incluídos quando estiverem disponíveis. Novas revisões do firmware precisarão repetir os testes afetados.
+A rede continua usando `localhost:1883` como configuração provisória. A decisão e o alarme do aparelho funcionam localmente. Para implementar a comunicação real, seguir o [guia de backend para Linux](docs/gsBackendLinux.md).
 
 ## Próximas etapas
 
 1. Dividir as frentes de trabalho e combinar formato de dados, unidades, identificadores e estados.
 2. Preparar o documento de marca, os slides e o videopitch de Storytelling.
 3. Ampliar os cenários de ruído e mudanças breves, mantendo os resultados de cada revisão do firmware.
-4. Configurar o backend IoT e verificar o caminho ESP32 → backend → painel.
+4. Implementar o backend seguindo o [guia de Linux](docs/gsBackendLinux.md) e verificar o caminho ESP32 → backend → painel.
 5. Desenvolver a aplicação web com CRUD externo e histórico real de commits.
 6. Desenvolver o programa Python e a análise matemática de DPS em paralelo.
 7. Avaliar as séries públicas compatíveis, consolidar os registros e finalizar as entregas de cada disciplina.
