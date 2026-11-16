@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: water-n-assurance
+    runtime: python
+    plan: free
+    region: virginia
+    rootDir: backend
+    buildCommand: pip install --require-hashes -r requirements.txt
+    startCommand: python -m vigia
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: water-n-assurance-db
+          property: connectionString
+      - key: DATABASE_SSL
+        value: disable
+      - key: INGEST_TOKEN
+        generateValue: true
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: DEVICE_IDS
+        value: vigia-sim-01
+      - key: ALLOWED_ORIGINS
+        value: https://water-n-assurance-dashboard.onrender.com,http://localhost:5173
+  - type: web
+    name: water-n-assurance-dashboard
+    runtime: static
+    rootDir: dashboard
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: VITE_API_URL
+        value: https://water-n-assurance.onrender.com
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+databases:
+  - name: water-n-assurance-db
+    plan: free
+    region: virginia
+    databaseName: vigia
+    user: vigia

@@ -1,4 +1,11 @@
 /*
+ * Equipe water n' assurance - 1ESPV-2026
+ * Thiago Gomes Nascimento - RM569436
+ * Rafael De Sousa - RM568777
+ * Vitor Assis Florenzano - RM572192
+ * Raul Moreira Andrade - RM571042
+ */
+/*
  * Prototipo SIMULADO. Indice optico 0..100 nao e NTU nem potabilidade.
  * Regras locais continuam sem rede. Backend MQTT ainda nao configurado.
  * Apoio de IA: documentado em README.md.
@@ -515,7 +522,7 @@ void setup() {
   oled.setI2CAddress(Config::OLED_ADDRESS << 1);
   oled.begin(); oled.enableUTF8Print();
   Serial.println("\nwater n' assurance / Vigia d'Agua / 1ESPV-2026");
-  Serial.println("Thiago Gomes Nascimento RM569436 | Rafael De Sousa RM568777 | Vitor Assis Florenzano RM572192");
+  Serial.println("Thiago Gomes Nascimento RM569436 | Rafael De Sousa RM568777 | Vitor Assis Florenzano RM572192 | Raul Moreira Andrade RM571042");
   Serial.println("SIMULACAO: indice optico relativo; nao comprova potabilidade.");
   Serial.printf("[RULE] %s; mediana5 + 3 confirmacoes apoiadas por amostras novas.\n", Config::RULE_VERSION);
   selfTestsPassed = true;

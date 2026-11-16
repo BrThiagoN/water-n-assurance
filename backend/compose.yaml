@@ -1,0 +1,71 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: vigia
+      POSTGRES_PASSWORD: vigia_local
+      POSTGRES_DB: vigia
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U vigia -d vigia]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  backend:
+    build:
+      context: .
+      target: runtime
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://vigia:vigia_local@db:5432/vigia
+      DATABASE_SSL: disable
+      PORT: 8000
+    ports:
+      - 127.0.0.1:8000:8000
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)"]
+      interval: 3s
+      timeout: 4s
+      start_period: 10s
+      retries: 20
+    depends_on:
+      db:
+        condition: service_healthy
+  test-db:
+    image: postgres:17-alpine
+    profiles: [test]
+    environment:
+      POSTGRES_USER: vigia
+      POSTGRES_PASSWORD: test_local
+      POSTGRES_DB: vigia_test
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U vigia -d vigia_test]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+  tests:
+    profiles: [test]
+    build:
+      context: .
+      target: development
+    environment:
+      TEST_DATABASE_URL: postgresql://vigia:test_local@test-db:5432/vigia_test
+    depends_on:
+      test-db:
+        condition: service_healthy
+  orion:
+    image: quay.io/fiware/orion:4.2.0
+    profiles: [fiware]
+    command: -dbURI mongodb://mongo:27017 -logLevel WARN
+    ports:
+      - 127.0.0.1:1026:1026
+    depends_on: [mongo]
+  mongo:
+    image: mongo:6.0
+    profiles: [fiware]
+    volumes:
+      - mongo_data:/data/db
+volumes:
+  postgres_data:
+  mongo_data:

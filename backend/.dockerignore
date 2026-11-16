@@ -1,0 +1,10 @@
+node_modules
+.env
+.runtime
+test
+*.log
+__pycache__
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.venv

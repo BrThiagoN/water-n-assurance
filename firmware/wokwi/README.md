@@ -2,6 +2,17 @@
 
 Este diretório espelha os arquivos do [protótipo público no Wokwi](https://wokwi.com/projects/480416382701050881), revisão 3. Ele reúne o código, o diagrama, as dependências e uma captura do circuito.
 
+## Equipe
+
+| Integrante | RM |
+|---|---|
+| Thiago Gomes Nascimento | RM569436 |
+| Rafael De Sousa | RM568777 |
+| Vitor Assis Florenzano | RM572192 |
+| Raul Moreira Andrade | RM571042 |
+
+A identificação dos quatro integrantes consta no cabeçalho de `sketch.ino` e na mensagem de inicialização do Serial Monitor, inclusive no Wokwi público. Atualizada em 16/11/2026, sem alteração das regras de borda.
+
 ## Circuito no Wokwi
 
 ![Circuito do Vigia d’Água no Wokwi](assets/circuito-wokwi.png)
@@ -206,7 +217,7 @@ No JSON de `STATUS`, o estado aparece como `state`. No payload MQTT de telemetri
 
 ## 7. Backend no Linux e limites da reprodução
 
-O [guia de backend no Linux](../../docs/gsBackendLinux.md) organiza Node-RED, broker MQTT, FIWARE Orion, histórico e painel. Essa arquitetura ainda será implementada; não existe aqui um ambiente completo que seja iniciado por um único comando.
+O [guia do backend](../../backend/README.md) explica a API, o fluxo Node-RED sem editor e o histórico Postgres, com Docker Compose para Linux/WSL e Blueprint do Render. A entrada HTTPS exige configurar o transporte e a credencial do dispositivo. MQTT e FIWARE ficam opcionais até seus servidores serem configurados; o painel mostra essa situação.
 
 A reprodução descrita neste arquivo é da **simulação**. Os potenciômetros não são sondas de água; o protótipo não foi calibrado com instrumentos físicos, não comprova potabilidade e não substitui análise laboratorial.
 

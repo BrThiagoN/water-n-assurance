@@ -11,9 +11,29 @@ Projeto acadêmico desenvolvido para a **Global Solution CitizenTech 2026.2**, d
 | Experimentar o aparelho sem instalar ferramentas | Siga o teste rápido abaixo. |
 | Criar minha própria cópia usando os arquivos do GitHub | Veja o [guia de reprodução do firmware](firmware/wokwi/README.md). |
 | Repetir os estados, falhas e comandos | Abra o [roteiro de testes](firmware/wokwi/TESTES.md). |
-| Continuar o backend no Linux | Siga o [plano de Node-RED, MQTT, FIWARE e histórico](docs/gsBackendLinux.md). |
+| Continuar o backend no Linux | Siga o [guia de Python, Postgres, MQTT e FIWARE](docs/gsBackendLinux.md). |
 
-**O que já pode ser executado:** a simulação do dispositivo no Wokwi, com interpretação, display, LED, alarme e comandos de teste locais. Backend, banco de histórico e painel ainda precisam ser implementados; o guia de Linux descreve essa próxima etapa.
+**O que já pode ser executado:** a simulação no Wokwi, a [API Python tipada](backend/README.md) e o [dashboard React/TypeScript](dashboard/README.md). O backend e a interface ficam em pastas separadas. O servidor mantém histórico Postgres e CRUD de acompanhamentos. A conexão do Wokwi à nuvem e as integrações configuráveis precisam ser verificadas separadamente; o estado de cada uma é informado pela API.
+
+## API e dashboard
+
+`backend/` contém a API Python tipada e a persistência; `dashboard/`, a interface React/TypeScript. Para iniciar no WSL:
+
+```bash
+cd backend
+python3 scripts/setup_env.py
+sudo docker compose up -d --build --wait backend
+```
+
+Em outro terminal, com Node.js 24.15+ da linha 24:
+
+```bash
+cd dashboard
+npm ci
+npm run dev
+```
+
+Consulte `http://localhost:8000/healthz` para conferir a API e abra `http://localhost:5173` para usar o dashboard. As instruções completas e os testes estão nos READMEs de cada pasta. Sem dados, a interface informa que aguarda leituras; não cria valores fictícios.
 
 ## Teste rápido no Wokwi
 
@@ -74,10 +94,12 @@ cd water-n-assurance
 | [firmware/wokwi/libraries.txt](firmware/wokwi/libraries.txt) | Bibliotecas utilizadas pelo projeto no Wokwi. |
 | [firmware/wokwi/TESTES.md](firmware/wokwi/TESTES.md) | Comandos de teste, critérios de conferência e registro anterior da revisão 3. |
 | [docs/gsBackendLinux.md](docs/gsBackendLinux.md) | Arquitetura e ordem de implementação do backend no Linux. |
+| [backend/README.md](backend/README.md) | Executar a API Python, conferir a tipagem e os testes e configurar o Render. |
+| [render.yaml](render.yaml) | Blueprint com Web Service e Postgres no plano Free do Render. |
 
-Clonar o repo baixa os arquivos. A execução atual do firmware é pelo Wokwi no navegador; este repositório ainda não contém configuração de build para Arduino CLI/PlatformIO, nem um servidor que seja iniciado com `npm start` ou `docker compose up`.
+Clonar o repo baixa os arquivos. O firmware continua sendo executado pelo Wokwi no navegador, sem configuração pronta de Arduino CLI/PlatformIO. Para iniciar o backend, seguir [backend/README.md](backend/README.md); há execução por Docker Compose e por Python 3.12 com Postgres. A interface é iniciada separadamente pelo [guia do dashboard](dashboard/README.md).
 
-O guia de Linux inclui um início isolado do Node-RED e distingue isso do ambiente completo que ainda será criado. Uma montagem com sensores físicos e água também exigirá desenvolvimento e validação além desta simulação.
+No Render, o histórico usa Postgres, pois arquivos locais do serviço gratuito são temporários. O serviço Free suspende por inatividade e o banco Free expira após 30 dias; conferir esses limites antes da demonstração. Uma montagem com sensores físicos e água também exigirá desenvolvimento e validação além desta simulação.
 
 ## Ficha da CitizenTech
 
@@ -201,7 +223,7 @@ A avaliação desta etapa cobre o comportamento do software em condições decla
 
 Os significados também serão mantidos na plataforma. Texto e símbolo acompanham a cor. Falta de leitura não aparece como normalidade. Durante a confirmação de uma mudança, o aparelho distingue o sinal provisório do último estado confirmado.
 
-## Arquitetura planejada
+## Arquitetura e integração
 
 ```text
 Sensores ou entradas simuladas
@@ -220,28 +242,28 @@ Sensores ou entradas simuladas
 | Parte | Responsabilidade | Tecnologia prevista |
 |---|---|---|
 | Dispositivo | Ler entradas, validar, suavizar, classificar e sinalizar localmente. | ESP32 e simulação no Wokwi. |
-| Backend IoT | Receber e disponibilizar as leituras do dispositivo. | Proposta: Node-RED, broker MQTT e FIWARE Orion; implementação pendente. |
-| API de acompanhamentos | Persistir e disponibilizar operações de CRUD. | Serviço externo, a definir. |
-| Plataforma web | Apresentar o ponto, o histórico, os eventos e as providências. | React com Vite ou Next.js e Tailwind CSS, a definir na implementação. |
+| Backend IoT | Receber e disponibilizar as leituras do dispositivo. | Python 3.12, FastAPI, Pydantic, SQLAlchemy tipado e Postgres. Entrada HTTPS; MQTT e FIWARE configuráveis. |
+| API de acompanhamentos | Persistir e disponibilizar operações de CRUD. | API deste backend, com token administrativo separado. |
+| Plataforma web | Apresentar o ponto, o histórico, os eventos e as providências. | React, TypeScript, Vite e Tailwind CSS, em `dashboard/`. |
 | Aplicação Python | Processar dados, organizar consultas e persistir registros de demonstração. | Python e arquivos JSON. |
 | Modelagem matemática | Estudar comportamento, taxas de variação e grandezas acumuladas nos cenários simulados. | Python ou GeoGebra, conforme a avaliação de DPS. |
 
 A validação, a interpretação e os avisos do aparelho são locais. O backend recebe os valores e o estado já calculado pelo ESP32; sua indisponibilidade não deve interromper a avaliação. A aplicação Python fará análises separadas da decisão em tempo real.
 
-O protótipo está disponível no [Wokwi](https://wokwi.com/projects/480416382701050881), e o circuito e o firmware estão espelhados em [firmware/wokwi/](firmware/wokwi/README.md). A integração com backend/API e a plataforma web continuam pendentes.
+O protótipo está disponível no [Wokwi](https://wokwi.com/projects/480416382701050881), e o circuito e o firmware estão espelhados em [firmware/wokwi/](firmware/wokwi/README.md). A API fica em [backend/](backend/README.md), sem arquivos de interface. O [dashboard](dashboard/README.md) fica em sua própria pasta na raiz, com as fontes e a paleta dos slides, consulta de histórico e CRUD de acompanhamentos. A entrega acadêmica de Front-end/Web ainda exige a conferência dos demais requisitos, documentação, acesso e histórico mínimo de commits.
 
 ## Estado do projeto
 
-| Frente | Situação registrada em 14/11/2026 |
+| Frente | Situação registrada em 16/11/2026 |
 |---|---|
 | Identidade da companhia e do produto | Definida. |
 | Pesquisa exploratória | Primeiras 18 respostas analisadas; coleta em andamento. |
 | Software & Total Experience Design | Apresentação de 16 slides preparada e revisada fora deste repositório. |
 | Storytelling e Inspiração Empreendedora | A desenvolver. |
-| Edge Computing & Computer Systems | Revisão 3 executada no Wokwi em 12/11, com 69 autotestes aprovados e o botão físico alternando entre silenciar e reativar o alarme. Firmware e diagrama versionados em firmware/wokwi/. Backend, vídeo da disciplina e avaliação com dados públicos pendentes. |
+| Edge Computing & Computer Systems | Firmware da revisão 3 registrado em 12/11 com 69 autotestes aprovados. API Python tipada, persistência Postgres e dashboard separado implementados em 16/11. Configuração da conexão Wokwi/nuvem, vídeo e avaliação com dados públicos são etapas próprias. |
 | Computational Thinking with Python | A implementar. |
 | Differentiated Problem Solving | Modelagem e relatório a desenvolver conforme as questões da avaliação. |
-| Front-end Design e Web Development | Aplicação compartilhada a implementar, com entregas acadêmicas separadas. |
+| Front-end Design e Web Development | Dashboard React/TypeScript com histórico e CRUD implementado. Conferir os requisitos restantes e preparar as entregas separadas. |
 
 ## Reprodução e validação
 
@@ -256,8 +278,8 @@ A rede continua usando `localhost:1883` como configuração provisória. A decis
 1. Dividir as frentes de trabalho e combinar formato de dados, unidades, identificadores e estados.
 2. Preparar o documento de marca, os slides e o videopitch de Storytelling.
 3. Ampliar os cenários de ruído e mudanças breves, mantendo os resultados de cada revisão do firmware.
-4. Implementar o backend seguindo o [guia de Linux](docs/gsBackendLinux.md) e verificar o caminho ESP32 → backend → painel.
-5. Desenvolver a aplicação web com CRUD externo e histórico real de commits.
+4. Configurar o deploy e o transporte do dispositivo seguindo o [guia de backend](backend/README.md), verificando o caminho ESP32 → backend → painel.
+5. Conferir a aplicação web, complementar os requisitos acadêmicos e manter um histórico real de commits significativos.
 6. Desenvolver o programa Python e a análise matemática de DPS em paralelo.
 7. Avaliar as séries públicas compatíveis, consolidar os registros e finalizar as entregas de cada disciplina.
 
@@ -285,4 +307,4 @@ Referências consultadas em 12/11/2026.
 
 ## Documentação do uso de IA
 
-Usamos o Codex para ajudar na organização das ideias, na pesquisa de referências, na escrita deste README e na implementação do firmware e dos testes no Wokwi. Cabe à nossa equipe conferir o conteúdo, entender o código e revisar as escolhas feitas. O registro desse apoio acompanha a documentação de cada matéria.
+Usamos o Codex para ajudar na organização das ideias, na pesquisa de referências, na documentação e na implementação do firmware, do backend e dos testes. Cabe à nossa equipe conferir o conteúdo, entender o código e revisar as escolhas feitas. O registro desse apoio acompanha a documentação de cada matéria.
