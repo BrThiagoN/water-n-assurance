@@ -1,9 +1,9 @@
 name: Backend Python
 on:
   push:
-    paths: ['backend/**', 'render.yaml', '.github/workflows/backend.yml']
+    paths: ['backend/**', 'infra/fiware/**', '.dockerignore', 'render.yaml', '.github/workflows/backend.yml']
   pull_request:
-    paths: ['backend/**', 'render.yaml', '.github/workflows/backend.yml']
+    paths: ['backend/**', 'infra/fiware/**', '.dockerignore', 'render.yaml', '.github/workflows/backend.yml']
 permissions:
   contents: read
 jobs:
@@ -37,3 +37,17 @@ jobs:
       - run: ruff format --check .
       - run: mypy vigia scripts tests
       - run: python -m pytest
+  fiware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Iniciar API, Orion e Mongo com limite de 512 MiB e 0.1 CPU
+        run: docker compose -f backend/compose.yaml --profile fiware-demo up -d --build fiware-demo
+      - name: Verificar estados e reconstrucao do contexto
+        run: docker compose -f backend/compose.yaml exec -T fiware-demo python -m scripts.check_fiware --send-demo --exercise-recovery
+      - name: Mostrar consumo e encerrar ambiente de teste
+        if: always()
+        run: |
+          docker stats --no-stream
+          docker compose -f backend/compose.yaml logs --tail 25 fiware-demo
+          docker compose -f backend/compose.yaml --profile fiware-demo down

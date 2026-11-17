@@ -4,9 +4,10 @@ from datetime import UTC, datetime, timedelta
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from pydantic import SecretStr, ValidationError
+from pydantic import JsonValue, SecretStr, ValidationError
 from sqlalchemy import update
 
+from vigia.api import create_app
 from vigia.config import Settings
 from vigia.database import EventRow, Store, TelemetryRow, json_object
 from vigia.demo import event, sample
@@ -15,6 +16,7 @@ from vigia.models import (
     Accepted,
     Channel,
     CurrentResponse,
+    FiwareContextResponse,
     FollowupRecord,
     Items,
     Telemetry,
@@ -147,20 +149,21 @@ def test_fiware_outbox_retries_and_sends_full_snapshot(store: Store, settings: S
         worker.flush()
         assert worker.status.last_error
         assert len(store.pending_snapshots()) == 1
-    requests: list[httpx.Request] = []
-
-    def respond(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        return httpx.Response(404 if request.method == "PATCH" else 201)
-
-    with httpx.Client(transport=httpx.MockTransport(respond)) as reachable:
+    orion = OrionStub()
+    with httpx.Client(transport=httpx.MockTransport(orion.respond)) as reachable:
         worker = FiwareWorker(store, configured, reachable)
         worker.flush()
+        assert worker.status.connected
         assert worker.status.last_success
-    assert json_object.validate_json(requests[-1].content)["type"] == "WaterMonitor"
-    assert store.pending_snapshots() == []
-    current = store.current(DEVICE)
-    assert current and current.fiware_synced_at
+        assert worker.context(DEVICE).lastSnapshot.value == sample()
+        assert store.pending_snapshots() == []
+        current = store.current(DEVICE)
+        assert current and current.fiware_synced_at
+        # Simula perda completa do cache Mongo sem apagar o Postgres.
+        orion.entity = None
+        worker.flush()
+        assert worker.context(DEVICE).lastSnapshot.value == sample()
+        assert len(store.telemetry(DEVICE, 100)) == 1
 
 
 def test_mqtt_uses_same_contract_and_store(store: Store, settings: Settings) -> None:
@@ -278,3 +281,66 @@ def test_tokens_must_be_distinct_and_not_placeholders(settings: Settings) -> Non
             ingest_token=SecretStr("replace-with-at-least-32-random-characters"),
             admin_token=SecretStr("b" * 40),
         )
+
+
+class OrionStub:
+    def __init__(self) -> None:
+        self.entity: dict[str, JsonValue] | None = None
+        self.unavailable = False
+
+    def respond(self, request: httpx.Request) -> httpx.Response:
+        if self.unavailable:
+            return httpx.Response(503)
+        if request.url.path == "/version":
+            return httpx.Response(200, json={"orion": {"version": "4.2.0"}})
+        if request.method == "GET":
+            return httpx.Response(200, json=self.entity) if self.entity else httpx.Response(404)
+        body = json_object.validate_json(request.content)
+        if request.method == "POST":
+            self.entity = body
+            return httpx.Response(201)
+        if self.entity is None:
+            return httpx.Response(404)
+        self.entity.update(body)
+        return httpx.Response(204)
+
+
+def test_current_reads_orion_and_preserves_postgres_fallback(
+    store: Store,
+    settings: Settings,
+) -> None:
+    store.orion_enabled = True
+    store.ingest(sample())
+    configured = settings.model_copy(update={"orion_url": "http://orion"})
+    orion = OrionStub()
+    transport = httpx.Client(transport=httpx.MockTransport(orion.respond))
+    worker = FiwareWorker(store, configured, transport)
+    worker.flush()
+    with TestClient(create_app(configured, store, transport)) as api:
+        response = CurrentResponse.model_validate(
+            api.get(f"/api/v1/devices/{DEVICE}/current").json()
+        )
+        assert response.source == "fiware-orion"
+        context = FiwareContextResponse.model_validate(
+            api.get(f"/api/v1/devices/{DEVICE}/context").json()
+        )
+        assert context.matches_current
+        assert context.entity.lastSnapshot.value.boot_id == sample().boot_id
+        # Contexto atrasado nao regride o estado atual.
+        store.ingest(sample(state="CHECK", seq=11))
+        response = CurrentResponse.model_validate(
+            api.get(f"/api/v1/devices/{DEVICE}/current").json()
+        )
+        assert response.source == "postgres"
+        assert response.current and response.current.payload.assessment_state == "CHECK"
+        assert orion.entity
+        orion.entity["assessmentState"] = {"type": "Text", "value": "CHECK"}
+        assert api.get(f"/api/v1/devices/{DEVICE}/context").status_code == 503
+        orion.unavailable = True
+        assert api.get(f"/api/v1/devices/{DEVICE}/context").status_code == 503
+        assert api.get(f"/api/v1/devices/{DEVICE}/current").status_code == 200
+
+
+def test_context_reports_disabled_integration(client: TestClient) -> None:
+    assert client.get(f"/api/v1/devices/{DEVICE}/context").status_code == 503
+    assert client.get("/api/v1/devices/unknown/context").status_code == 404

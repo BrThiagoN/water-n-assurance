@@ -38,3 +38,14 @@ Na mesma sessão `1879de1c`, a sequência 115 chegou como `CHECK`, índice 80. A
 Com `TEST NET OFF`, a sequência 330 deixou de receber atualizações: a API informou idade superior a 54 segundos e `stale=true`. O painel mostrou **Último estado recebido**, ocultou os valores atuais e identificou os valores anteriores. Após `TEST NET ON`, houve nova confirmação HTTPS 201; a sequência 358 estava em `NO_CHANGE`, índice 20 e comunicação recente. O painel publicado voltou a **Dados atualizados**, com 20 / 100, 25 °C, 6 L/min e 2 bar. O comando `MUTE` reconheceu o aviso pendente. A simulação permaneceu ligada, com credencial apenas na RAM.
 
 O navegador precisa recarregar a página após um novo deploy para carregar o bundle atualizado. Reiniciar a simulação exige carregar novamente o token de ingestão; perder a conexão não cria medições e não apaga o histórico. As limitações FIWARE/IoT Cloud e de ensaio físico descritas acima permanecem.
+
+## FIWARE real — revisão de 17/11/2026
+
+- API, Orion 4.2.0 e MongoDB 8.0 foram executados em um mesmo container Linux, com limite de 512 MiB. O consumo observado estabilizou próximo de 166 MiB; uma leitura anterior durante a inicialização ficou em 287 MiB. Esses valores são observações do ensaio, não um limite garantido para qualquer carga.
+- Com 0.1 CPU, mensagens HTTP sintéticas nos estados NO_CHANGE, ATTENTION e CHECK chegaram ao Orion real. O endpoint de contexto confirmou o payload e a consulta atual informou `source: fiware-orion`.
+- A entidade de teste foi removida do Orion; o worker a reconstruiu pelo Postgres sem nova ingestão, preservando a sequência.
+- Foi corrigida uma incompatibilidade real de data NGSI-v2: `receivedAt` usa UTC com milissegundos e sufixo Z. O valor original continua preservado no histórico.
+- Lint e mypy estrito aprovados. A suíte com Postgres real passou em **26 testes**. Foram incluídos testes de reconstrução, leitura do contexto, contexto atrasado e fallback durante indisponibilidade.
+- O script `scripts.check_fiware` e a CI exercitam o perfil real. Os ensaios que alteram dados são limitados ao ambiente local, com mensagens identificadas como sintéticas. A comprovação com o Wokwi publicado pertence ao registro de nuvem após o deploy.
+
+A implementação usa imagens oficiais fixadas por digest e processos sem root. Orion e Mongo escutam somente em loopback; o endpoint público permite apenas consultar o contexto sintético. O Mongo do perfil Free é um cache de contexto reconstruível, e o Postgres continua sendo o histórico durável.

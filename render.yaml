@@ -1,12 +1,11 @@
 services:
   - type: web
     name: water-n-assurance
-    runtime: python
+    runtime: docker
     plan: free
     region: virginia
-    rootDir: backend
-    buildCommand: pip install --require-hashes -r requirements.txt
-    startCommand: python -m vigia
+    dockerfilePath: ./infra/fiware/Dockerfile
+    dockerContext: .
     healthCheckPath: /healthz
     envVars:
       - key: DATABASE_URL
@@ -19,6 +18,8 @@ services:
         generateValue: true
       - key: ADMIN_TOKEN
         generateValue: true
+      - key: ORION_URL
+        value: http://127.0.0.1:1026
       - key: DEVICE_IDS
         value: vigia-sim-01
       - key: ALLOWED_ORIGINS

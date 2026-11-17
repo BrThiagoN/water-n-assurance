@@ -143,13 +143,19 @@ sudo docker compose --profile fiware up -d --build
 
 A entidade é `urn:ngsi-ld:WaterMonitor:vigia-sim-01`, com serviço `waternassurance`, caminho `/` e API NGSI-v2. A outbox persiste no Postgres e permite retentar atualizações. Sem Orion configurado, não declarar que essa integração está funcionando. Python é a linguagem da API; o requisito acadêmico FIWARE/IoT Cloud é uma escolha de plataforma separada.
 
+## FIWARE no Render Free
+
+O perfil de nuvem inclui Orion e Mongo no mesmo container da API, com acesso somente por loopback. O Postgres mantém histórico e acompanhamentos; o contexto Mongo é reconstruído depois de reinícios. A consulta atual usa o payload do Orion quando corresponde ao snapshot persistido e informa sua origem em `source`. Para conferir a entidade real, use `GET /api/v1/devices/vigia-sim-01/context`.
+
+O [guia de FIWARE no Render](../infra/fiware/README.md) explica o perfil, o teste com limite de 512 MiB/0.1 CPU e os comandos de demonstração.
+
 ## Render
 
-O [`render.yaml`](../render.yaml) separa a API Python, o Postgres **Free** e o dashboard como **Static Site**. A API usa `pip install --require-hashes -r requirements.txt` e `python -m vigia`. Python 3.12 está definido em `.python-version`; `PORT` vem do Render.
+O [`render.yaml`](../render.yaml) separa a API Python, o Postgres **Free** e o dashboard como **Static Site**. O Web Service usa runtime Docker e `infra/fiware/Dockerfile`, com Python 3.12 e os processos internos do FIWARE. Os pacotes Python continuam instalados com hashes; `PORT` vem do Render.
 
-Ao atualizar o Blueprint existente, confira o runtime **Python** e preserve o banco e os tokens gerados. Se o Render atribuir outro endereço ao dashboard, ajuste `ALLOWED_ORIGINS`; se mudar o endereço da API, ajuste `VITE_API_URL` e reconstrua o dashboard. Não selecione recursos pagos.
+Ao atualizar o Blueprint existente, confira o runtime **Docker** e o plano **Free** e preserve o banco e os tokens gerados. Se o Render atribuir outro endereço ao dashboard, ajuste `ALLOWED_ORIGINS`; se mudar o endereço da API, ajuste `VITE_API_URL` e reconstrua o dashboard. Não selecione recursos pagos.
 
-O [plano Free](https://render.com/docs/free) suspende o Web Service após inatividade, tem filesystem temporário e o Postgres gratuito expira após 30 dias. Preserve/exporte os dados antes da expiração. O Static Site é independente da API. O Blueprint não provisiona Orion/MongoDB em nuvem.
+O [plano Free](https://render.com/docs/free) suspende o Web Service após inatividade, tem filesystem temporário e o Postgres gratuito expira após 30 dias. Preserve/exporte os dados antes da expiração. O Static Site é independente da API. Orion e Mongo executam internamente no container; o Mongo é um contexto temporário reconstruível pelo Postgres.
 
 O Render termina o HTTPS público. A conexão interna do banco usa `DATABASE_SSL=disable`; para um banco externo com TLS, `DATABASE_SSL=require` usa `verify-full`, sem desabilitar a verificação de certificado.
 

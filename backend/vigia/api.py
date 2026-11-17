@@ -9,7 +9,7 @@ import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
@@ -29,6 +29,7 @@ from vigia.models import (
     Communication,
     CurrentResponse,
     EventRecord,
+    FiwareContextResponse,
     FollowupCreate,
     FollowupRecord,
     FollowupWrite,
@@ -79,9 +80,11 @@ class BodyLimitMiddleware:
         await self.app(scope, replay, send)
 
 
-def create_app(settings: Settings, store: Store | None = None) -> FastAPI:
+def create_app(
+    settings: Settings, store: Store | None = None, integration_client: httpx.Client | None = None
+) -> FastAPI:
     repository = store or Store(build_engine(settings), orion_enabled=bool(settings.orion_url))
-    http_client = httpx.Client(timeout=8)
+    http_client = integration_client or httpx.Client(timeout=8)
     fiware = FiwareWorker(repository, settings, http_client)
     mqtt = MqttWorker(repository, settings)
 
@@ -218,6 +221,25 @@ def create_app(settings: Settings, store: Store | None = None) -> FastAPI:
         response.status_code = 200 if result.duplicate else 201
         return result
 
+    @app.get("/api/v1/devices/{device}/context", dependencies=[Depends(require_device)])
+    def context(device: str) -> FiwareContextResponse:
+        if not fiware.status.configured:
+            raise HTTPException(503, "FIWARE nao configurado.")
+        try:
+            entity = fiware.context(device)
+        except httpx.HTTPStatusError as error:
+            if error.response.status_code == 404:
+                raise HTTPException(404, "Contexto FIWARE ainda nao sincronizado.") from None
+            raise HTTPException(503, "FIWARE temporariamente indisponivel.") from None
+        except (httpx.HTTPError, ValueError):
+            raise HTTPException(503, "Resposta FIWARE indisponivel ou invalida.") from None
+        row = repository.current(device)
+        return FiwareContextResponse(
+            device_id=device,
+            entity=entity,
+            matches_current=row is not None and fiware.matches(entity, row),
+        )
+
     @app.get("/api/v1/devices/{device}/current", dependencies=[Depends(require_device)])
     def current(device: str) -> CurrentResponse:
         row = repository.current(device)
@@ -226,7 +248,20 @@ def create_app(settings: Settings, store: Store | None = None) -> FastAPI:
             if row
             else None
         )
+        source: Literal["postgres", "fiware-orion"] = "postgres"
+        if row is not None and fiware.status.configured:
+            try:
+                entity = fiware.context(device)
+                if fiware.matches(entity, row):
+                    row = row.model_copy(update={"payload": entity.lastSnapshot.value})
+                    source = "fiware-orion"
+            except (httpx.HTTPError, ValueError):
+                fiware.status.connected = False
+                fiware.status.last_error = (
+                    "Consulta FIWARE indisponivel; usando historico persistido."
+                )
         return CurrentResponse(
+            source=source,
             device_id=device,
             current=row,
             communication=Communication(

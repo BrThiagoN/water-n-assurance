@@ -7,3 +7,5 @@ O apoio incluiu modelos Pydantic, rotas FastAPI, mapeamento SQLAlchemy tipado, a
 Conferimos o contrato contra os encoders do firmware. Lint, tipagem estrita e testes com Postgres real fazem parte da validação, registrada em [backend-validation.md](../docs/backend-validation.md). Resultados antigos de Node-RED não comprovam a implementação Python. A equipe deve conferir os resultados e compreender o fluxo de uma mensagem antes de apresentá-lo.
 
 O requisito de plataforma FIWARE/IoT Cloud é separado da linguagem Python. Adaptador disponível não comprova integração configurada; testes com mensagens sintéticas não comprovam a conexão de um Wokwi real nem medição física de água. A classificação local e a documentação não garantem potabilidade.
+
+Em 17/11/2026, o apoio incluiu integrar Orion real, tipar a entidade NGSI-v2, reconstruir contextos pelo Postgres, consultar o broker no caminho do dashboard e empacotar o perfil Render Free. Os testes incluem broker e Mongo reais com recursos limitados, além de testes automatizados de falha e recuperação. A equipe precisa compreender a diferença entre cache de contexto e histórico persistido.

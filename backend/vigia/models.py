@@ -262,6 +262,56 @@ class CurrentResponse(BaseModel):
     device_id: str
     current: TelemetryRecord | None
     communication: Communication
+    source: Literal["postgres", "fiware-orion"] = "postgres"
+
+
+class NgsiText(BaseModel):
+    type: Literal["Text"]
+    value: str
+
+
+class NgsiBoolean(BaseModel):
+    type: Literal["Boolean"]
+    value: bool
+
+
+class NgsiDateTime(BaseModel):
+    type: Literal["DateTime"]
+    value: datetime
+
+
+class NgsiSnapshot(BaseModel):
+    type: Literal["StructuredValue"]
+    value: Telemetry
+
+
+class FiwareEntity(BaseModel):
+    id: str
+    type: Literal["WaterMonitor"]
+    deviceId: NgsiText
+    assessmentState: NgsiText
+    assessmentAvailable: NgsiBoolean
+    receivedAt: NgsiDateTime
+    lastSnapshot: NgsiSnapshot
+
+    @model_validator(mode="after")
+    def coherent_context(self) -> Self:
+        snapshot = self.lastSnapshot.value
+        if (
+            self.deviceId.value != snapshot.device_id
+            or self.assessmentState.value != snapshot.assessment_state
+            or self.assessmentAvailable.value != snapshot.assessment_available
+        ):
+            raise ValueError("Os atributos NGSI devem corresponder ao snapshot do dispositivo.")
+        return self
+
+
+class FiwareContextResponse(BaseModel):
+    source: Literal["fiware-orion"] = "fiware-orion"
+    protocol: Literal["NGSI-v2"] = "NGSI-v2"
+    device_id: str
+    matches_current: bool
+    entity: FiwareEntity
 
 
 class Items[T](BaseModel):

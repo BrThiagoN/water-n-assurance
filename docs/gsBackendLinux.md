@@ -12,10 +12,11 @@ flowchart LR
     MQTT["Broker MQTT opcional"] --> API
     API --> PG["Postgres: estado, histórico e acompanhamentos"]
     UI["dashboard/: React + TypeScript"] -->|"HTTPS e JSON"| API
-    API -->|"Outbox, quando configurado"| ORION["FIWARE Orion"]
+    API -->|"Outbox NGSI-v2"| ORION["FIWARE Orion"]
+    ORION -->|"Contexto correspondente ao snapshot"| API
 ```
 
-Python é a linguagem do servidor. O enunciado de Edge cita backend FIWARE ou IoT Cloud; essa camada precisa ser demonstrada ao fechar a entrega. Node-RED foi uma proposta anterior, não uma exigência escrita confirmada.
+Python é a linguagem da API. O perfil do Render inclui FIWARE Orion como plataforma IoT; o vídeo pode mostrar sua entidade NGSI-v2 pelo endpoint de contexto. Node-RED foi uma proposta anterior, não uma exigência escrita confirmada.
 
 ## 2. Começar com o Docker já instalado no Ubuntu
 
@@ -82,13 +83,13 @@ Para Orion local, defina `ORION_URL=http://orion:1026` em `backend/.env` e inici
 
 O [`render.yaml`](../render.yaml) define a API Python **Free**, Postgres **Free** e o dashboard como Static Site. Ao sincronizar o Blueprint, preserve banco e tokens e confira os endereços usados em `VITE_API_URL` e `ALLOWED_ORIGINS`. Nenhum serviço pago foi autorizado.
 
-O Web Service gratuito suspende por inatividade; o Postgres gratuito expira após 30 dias. A suspensão interrompe coleta em segundo plano. O histórico fica no Postgres, não no filesystem temporário do Render. O Blueprint não cria uma instância FIWARE em nuvem.
+O Web Service gratuito suspende por inatividade; o Postgres gratuito expira após 30 dias. A suspensão interrompe coleta em segundo plano. O histórico fica no Postgres, não no filesystem temporário do Render. O perfil Docker inclui Orion e Mongo internos ao container. O contexto Mongo é temporário e reconstruído pelo Postgres; o [guia específico](../infra/fiware/README.md) explica como testar e demonstrar essa arquitetura.
 
 ## 7. Antes do vídeo de Edge
 
 1. Repetir os cenários do [roteiro do firmware](../firmware/wokwi/TESTES.md).
 2. Fazer uma mensagem realmente gerada no Wokwi chegar ao backend e aparecer no dashboard.
-3. Demonstrar a camada FIWARE/IoT Cloud escolhida, sem confundir linguagem com plataforma.
+3. Mostrar `/api/v1/devices/vigia-sim-01/context` com `matches_current: true` e a consulta atual com `source: fiware-orion`, após uma alteração no Wokwi.
 4. Mostrar os estados e os avisos locais, inclusive falha e reconhecimento do som.
 5. Mostrar o histórico e a distinção entre comunicação antiga e leitura atual.
 6. Gravar o vídeo narrado de até sete minutos, identificando simulação, componentes, limites e os quatro integrantes.

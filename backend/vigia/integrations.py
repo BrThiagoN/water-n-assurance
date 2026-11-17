@@ -11,8 +11,8 @@ import httpx
 from pydantic import JsonValue, ValidationError
 
 from vigia.config import Settings
-from vigia.database import Store
-from vigia.models import IntegrationState, payload_adapter
+from vigia.database import PendingSnapshot, Store
+from vigia.models import FiwareEntity, IntegrationState, TelemetryRecord, payload_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -22,57 +22,85 @@ class FiwareWorker:
         self.store, self.settings, self.client = store, settings, client
         self.status = IntegrationState(configured=bool(settings.orion_url))
 
+    @property
+    def headers(self) -> dict[str, str]:
+        return {"Fiware-Service": self.settings.fiware_service, "Fiware-ServicePath": "/"}
+
+    def context(self, device: str) -> FiwareEntity:
+        entity_id = f"urn:ngsi-ld:WaterMonitor:{device}"
+        response = self.client.get(
+            f"{self.settings.orion_url}/v2/entities/{quote(entity_id, safe='')}",
+            headers=self.headers,
+        )
+        response.raise_for_status()
+        entity = FiwareEntity.model_validate_json(response.content)
+        if entity.id != entity_id or entity.deviceId.value != device:
+            raise ValueError("Entidade FIWARE incoerente com o dispositivo.")
+        return entity
+
+    def publish(self, row: TelemetryRecord) -> None:
+        entity_id = f"urn:ngsi-ld:WaterMonitor:{row.device_id}"
+        attrs: dict[str, JsonValue] = {
+            "deviceId": {"type": "Text", "value": row.device_id},
+            "assessmentState": {"type": "Text", "value": row.payload.assessment_state},
+            "assessmentAvailable": {"type": "Boolean", "value": row.payload.assessment_available},
+            "receivedAt": {
+                "type": "DateTime",
+                "value": row.received_at.astimezone(UTC)
+                .isoformat(timespec="milliseconds")
+                .replace("+00:00", "Z"),
+            },
+            "lastSnapshot": {
+                "type": "StructuredValue",
+                "value": row.payload.model_dump(mode="json", exclude_unset=True),
+            },
+        }
+        base = self.settings.orion_url
+        path = f"{base}/v2/entities/{quote(entity_id, safe='')}/attrs"
+        response = self.client.patch(path, json=attrs, headers=self.headers)
+        if response.status_code == 404:
+            response = self.client.post(
+                f"{base}/v2/entities",
+                headers=self.headers,
+                json={"id": entity_id, "type": "WaterMonitor", **attrs},
+            )
+            if response.status_code == 422:
+                response = self.client.patch(path, json=attrs, headers=self.headers)
+        response.raise_for_status()
+        self.store.mark_synced(PendingSnapshot(row.id, row))
+
+    @staticmethod
+    def matches(entity: FiwareEntity, row: TelemetryRecord) -> bool:
+        return entity.lastSnapshot.value == row.payload
+
     def flush(self) -> None:
         if not self.status.configured:
             return
         try:
+            self.client.get(f"{self.settings.orion_url}/version").raise_for_status()
             for pending in self.store.pending_snapshots():
-                row = pending.record
-                entity_id = f"urn:ngsi-ld:WaterMonitor:{row.device_id}"
-                attrs: dict[str, JsonValue] = {
-                    "deviceId": {"type": "Text", "value": row.device_id},
-                    "assessmentState": {"type": "Text", "value": row.payload.assessment_state},
-                    "assessmentAvailable": {
-                        "type": "Boolean",
-                        "value": row.payload.assessment_available,
-                    },
-                    "receivedAt": {"type": "DateTime", "value": row.received_at.isoformat()},
-                    "lastSnapshot": {
-                        "type": "StructuredValue",
-                        "value": row.payload.model_dump(mode="json", exclude_unset=True),
-                    },
-                }
-                headers = {
-                    "Fiware-Service": self.settings.fiware_service,
-                    "Fiware-ServicePath": "/",
-                }
-                base = self.settings.orion_url
-                response = self.client.patch(
-                    f"{base}/v2/entities/{quote(entity_id, safe='')}/attrs",
-                    json=attrs,
-                    headers=headers,
-                )
-                if response.status_code == 404:
-                    response = self.client.post(
-                        f"{base}/v2/entities",
-                        headers=headers,
-                        json={"id": entity_id, "type": "WaterMonitor", **attrs},
-                    )
-                    # Outra instância pode ter criado a entidade entre PATCH e POST.
-                    if response.status_code == 422:
-                        response = self.client.patch(
-                            f"{base}/v2/entities/{quote(entity_id, safe='')}/attrs",
-                            json=attrs,
-                            headers=headers,
-                        )
-                response.raise_for_status()
-                self.store.mark_synced(pending)
-                self.status.connected = True
-                self.status.last_success = datetime.now(UTC)
-                self.status.last_error = None
-        except (httpx.HTTPError, OSError):
+                self.publish(pending.record)
+            # O Mongo do perfil gratuito e um cache. Ao reiniciar, reconstruir
+            # cada contexto pelo snapshot duravel do Postgres, sem criar leituras.
+            for device in self.settings.devices:
+                row = self.store.current(device)
+                if row is None:
+                    continue
+                try:
+                    entity = self.context(device)
+                except httpx.HTTPStatusError as error:
+                    if error.response.status_code != 404:
+                        raise
+                    self.publish(row)
+                else:
+                    if not self.matches(entity, row):
+                        self.publish(row)
+            self.status.connected = True
+            self.status.last_success = datetime.now(UTC)
+            self.status.last_error = None
+        except (httpx.HTTPError, OSError, ValueError):
             self.status.connected = False
-            self.status.last_error = "Sincronização FIWARE pendente; será tentada novamente."
+            self.status.last_error = "Sincronizacao FIWARE pendente; sera tentada novamente."
 
     async def run(self) -> None:
         while True:
@@ -80,7 +108,7 @@ class FiwareWorker:
                 await asyncio.to_thread(self.flush)
             except Exception:
                 logger.error("Falha ao processar a outbox FIWARE; nova tentativa agendada.")
-            await asyncio.sleep(10)
+            await asyncio.sleep(2)
 
 
 class MqttWorker:

@@ -62,10 +62,40 @@ services:
       - 127.0.0.1:1026:1026
     depends_on: [mongo]
   mongo:
-    image: mongo:6.0
+    image: mongo:8.0
     profiles: [fiware]
     volumes:
       - mongo_data:/data/db
+  fiware-demo-db:
+    image: postgres:17-alpine
+    profiles: [fiware-demo]
+    environment:
+      POSTGRES_USER: vigia
+      POSTGRES_PASSWORD: test_demo
+      POSTGRES_DB: vigia_demo
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U vigia -d vigia_demo]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  fiware-demo:
+    build:
+      context: ..
+      dockerfile: infra/fiware/Dockerfile
+    profiles: [fiware-demo]
+    mem_limit: 512m
+    cpus: 0.1
+    environment:
+      DATABASE_URL: postgresql://vigia:test_demo@fiware-demo-db:5432/vigia_demo
+      INGEST_TOKEN: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      ADMIN_TOKEN: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      PORT: 8000
+      ORION_URL: http://127.0.0.1:1026
+      ALLOWED_ORIGINS: http://localhost:5173
+    ports: [127.0.0.1:8001:8000]
+    depends_on:
+      fiware-demo-db:
+        condition: service_healthy
 volumes:
   postgres_data:
   mongo_data:
