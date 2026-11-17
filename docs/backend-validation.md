@@ -1,6 +1,6 @@
 # Validação — API Python e dashboard
 
-Revisão de **16/11/2026**. Os resultados abaixo pertencem à implementação Python, não ao servidor Node-RED anterior.
+Registro iniciado em **16/11/2026**, atualizado em **17/11/2026** com FIWARE real publicado. Cada seção identifica o ensaio realizado; a seção de nuvem traz a comprovação mais recente.
 
 ## Verificações executadas
 
@@ -15,7 +15,7 @@ Revisão de **16/11/2026**. Os resultados abaixo pertencem à implementação Py
 
 ## Limites
 
-O teste FIWARE automatizado usa respostas HTTP simuladas; isso não comprova execução de Orion em nuvem. O teste do adaptador MQTT não comprova uma conexão de broker real. As verificações acima também não comprovam, por si, que uma mensagem de um Wokwi real chegou ao servidor publicado: essa integração precisa do próprio registro e da conferência no dashboard.
+Na revisão inicial de 16/11, o teste FIWARE usava respostas HTTP simuladas. Essa limitação foi resolvida pelos ensaios com Orion real e pela publicação documentada ao final deste registro. O teste do adaptador MQTT não comprova uma conexão de broker real. As verificações acima também não comprovam, por si, que uma mensagem de um Wokwi real chegou ao servidor publicado: essa integração precisa do próprio registro e da conferência no dashboard.
 
 O registro anterior de 69 testes do firmware pertence à revisão anterior do dispositivo e não é substituído pelos testes Python. Uma nova compilação ou alteração de transporte exige repetir a verificação do Wokwi.
 
@@ -37,7 +37,7 @@ Na mesma sessão `1879de1c`, a sequência 115 chegou como `CHECK`, índice 80. A
 
 Com `TEST NET OFF`, a sequência 330 deixou de receber atualizações: a API informou idade superior a 54 segundos e `stale=true`. O painel mostrou **Último estado recebido**, ocultou os valores atuais e identificou os valores anteriores. Após `TEST NET ON`, houve nova confirmação HTTPS 201; a sequência 358 estava em `NO_CHANGE`, índice 20 e comunicação recente. O painel publicado voltou a **Dados atualizados**, com 20 / 100, 25 °C, 6 L/min e 2 bar. O comando `MUTE` reconheceu o aviso pendente. A simulação permaneceu ligada, com credencial apenas na RAM.
 
-O navegador precisa recarregar a página após um novo deploy para carregar o bundle atualizado. Reiniciar a simulação exige carregar novamente o token de ingestão; perder a conexão não cria medições e não apaga o histórico. As limitações FIWARE/IoT Cloud e de ensaio físico descritas acima permanecem.
+O navegador precisa recarregar a página após um novo deploy para carregar o bundle atualizado. Reiniciar a simulação exige carregar novamente o token de ingestão; perder a conexão não cria medições e não apaga o histórico. Naquele ensaio, a camada FIWARE ainda estava pendente. A seção abaixo documenta sua resolução. A limitação de ensaio físico permanece.
 
 ## FIWARE real — revisão de 17/11/2026
 
@@ -49,3 +49,17 @@ O navegador precisa recarregar a página após um novo deploy para carregar o bu
 - O script `scripts.check_fiware` e a CI exercitam o perfil real. Os ensaios que alteram dados são limitados ao ambiente local, com mensagens identificadas como sintéticas. A comprovação com o Wokwi publicado pertence ao registro de nuvem após o deploy.
 
 A implementação usa imagens oficiais fixadas por digest e processos sem root. Orion e Mongo escutam somente em loopback; o endpoint público permite apenas consultar o contexto sintético. O Mongo do perfil Free é um cache de contexto reconstruível, e o Postgres continua sendo o histórico durável.
+
+## FIWARE publicado no Render — 17/11/2026
+
+O commit [`8889c3a`](https://github.com/BrThiagoN/water-n-assurance/commit/8889c3a4a36dc1839e198b3b8db14784599ef8df) foi publicado no Web Service existente, com runtime **Docker**, plano **Free** e deploy `dep-dbu8guafngtc73e2h94g` em **Live**. Não foram criados recursos pagos nem conta MongoDB Atlas. A [CI dessa revisão](https://github.com/BrThiagoN/water-n-assurance/actions/runs/44132316957) terminou com sucesso, incluindo os 26 testes Python/Postgres e o ensaio de estados/reconstrução com Orion/Mongo reais.
+
+A primeira imagem não concluiu o build do Render: executar `mongod --version` inicializava o alocador de memória em um ambiente de build sem informação de topologia de CPU. A verificação de execução do Mongo foi mantida nos testes de runtime; o Dockerfile usa checagem de bibliotecas no build. O deploy seguinte ficou Live.
+
+Uma **nova execução do Wokwi**, sessão `68f39ffc`, repetiu os 69 autotestes sem falhas. O token foi carregado somente na RAM, sem eco no Serial ou alteração no projeto público. Após `TEST NET ON`, `TEST FLOW 6` e `TEST OPTICAL 40`, o Serial confirmou HTTPS 201. A sequência **129** foi conferida na API como `ATTENTION`, índice 40, com `stale: false` e `source: fiware-orion`. A consulta real ao Orion retornou o mesmo boot e sequência, com `matches_current: true`. Não foi uma mensagem injetada por um script HTTP de teste.
+
+O navegador carregou o dashboard publicado e mostrou **Dados atualizados**, **Atenção à mudança**, índice **40 / 100**, temperatura **25 °C**, vazão **6 L/min** e pressão **2 bar**. O endpoint de contexto também foi aberto no navegador, retornando `source: fiware-orion`, `protocol: NGSI-v2` e `matches_current: true`. As capturas locais foram salvas como `render-fiware-live.jpg`, `water-n-assurance-fiware-context.jpg` e `water-n-assurance-fiware-dashboard.jpg` na pasta de materiais da equipe.
+
+Antes da nova leitura, o worker havia reconstruído a entidade da sessão anterior `1879de1c`, sequência 457, usando o histórico persistido. Sua comunicação continuava marcada como antiga: reconstruir contexto não fabrica uma leitura recente. O histórico permanece no Postgres; o Mongo guarda apenas contexto reconstruível no filesystem temporário do plano Free.
+
+O vídeo ainda precisa ser gravado, publicado no YouTube e conferido pela equipe. Nenhuma entrega foi enviada ao Teams. O [roteiro](gsEdge-video.md) reúne os pontos que não podem faltar.
