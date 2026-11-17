@@ -1,7 +1,7 @@
 # Vigia d’Água — roteiro de reprodução e testes
 
 > Revisão documental: **14/11/2026**.
-> Os cenários abaixo foram conferidos contra os comandos e as regras do firmware. **Esta atualização não executou novamente o Wokwi.** “Esperado” descreve o comportamento a conferir; resultados de uma execução devem ser registrados ao final.
+> Os cenários abaixo foram conferidos contra os comandos e as regras do firmware. A execução de 17/11/2026 está registrada abaixo e no guia de validação da integração. “Esperado” continua descrevendo o comportamento a conferir; isso não indica que todos os cenários históricos foram repetidos nessa sessão.
 
 ## 1. Abrir e preparar
 
@@ -169,6 +169,16 @@ O README anterior registra uma execução da revisão 3 no Wokwi em **12/11/2026
 Fonte: [README no commit 4438861](https://github.com/BrThiagoN/water-n-assurance/blob/44388615920890d68deb67e4eb6bde132da8da94/README.md). Esse registro foi preservado da documentação anterior; esta atualização não repetiu a execução nem acrescenta logs brutos daquela sessão. Não usar a duração relatada como ensaio de durabilidade.
 
 Os autotestes rodam no início com `Config::RUN_SELF_TESTS=true`. Se as dependências ou o código mudarem, conferir o resumo da nova execução; não copiar o resultado anterior como se fosse uma validação nova.
+
+### Execução da integração — 17/11/2026
+
+- Nova compilação do firmware HTTPS: `[TEST] SUMMARY passed=69 failed=0 result=PASS`.
+- Mensagens produzidas no Wokwi chegaram à API Python publicada e ao Postgres: estados `NO_CHANGE`, `ATTENTION`, `CHECK` e `UNAVAILABLE`, na sessão `1879de1c`.
+- Índices 40 e 80, falha óptica e recuperação conferidos na API; valores e histórico conferidos no dashboard do Render.
+- Rede desligada: painel identificou comunicação antiga e ocultou os valores atuais. Rede reativada: novos envios HTTPS 201 e painel novamente atualizado.
+- Cenário final: óptica 20, vazão 6 e `MUTE`, com o dispositivo em `NO_CHANGE`. Os demais ensaios antigos não foram repetidos integralmente.
+
+Detalhes, sequências e limites: [registro de validação](../../docs/backend-validation.md). Não incluir tokens no vídeo ou nas evidências.
 
 ## 9. Como registrar sua própria reprodução
 

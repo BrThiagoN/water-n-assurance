@@ -254,7 +254,7 @@ O protótipo está disponível no [Wokwi](https://wokwi.com/projects/48041638270
 
 ## Estado do projeto
 
-| Frente | Situação registrada em 16/11/2026 |
+| Frente | Situação registrada em 17/11/2026 |
 |---|---|
 | Identidade da companhia e do produto | Definida. |
 | Pesquisa exploratória | Primeiras 18 respostas analisadas; coleta em andamento. |
@@ -278,7 +278,7 @@ O firmware envia `telemetry` e `event` por HTTPS à API Python do Render, com fi
 1. Dividir as frentes de trabalho e combinar formato de dados, unidades, identificadores e estados.
 2. Preparar o documento de marca, os slides e o videopitch de Storytelling.
 3. Ampliar os cenários de ruído e mudanças breves, mantendo os resultados de cada revisão do firmware.
-4. Configurar o deploy e o transporte do dispositivo seguindo o [guia de backend](backend/README.md), verificando o caminho ESP32 → backend → painel.
+4. Usar o caminho ESP32 → API Render → Postgres → painel já validado como base para o vídeo; demonstrar a camada FIWARE/IoT Cloud escolhida conforme o enunciado de Edge.
 5. Conferir a aplicação web, complementar os requisitos acadêmicos e manter um histórico real de commits significativos.
 6. Desenvolver o programa Python e a análise matemática de DPS em paralelo.
 7. Avaliar as séries públicas compatíveis, consolidar os registros e finalizar as entregas de cada disciplina.
