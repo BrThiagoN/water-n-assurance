@@ -13,7 +13,7 @@ Projeto acadêmico desenvolvido para a **Global Solution CitizenTech 2026.2**, d
 | Repetir os estados, falhas e comandos | Abra o [roteiro de testes](firmware/wokwi/TESTES.md). |
 | Continuar o backend no Linux | Siga o [guia de Python, Postgres, MQTT e FIWARE](docs/gsBackendLinux.md). |
 
-**O que já pode ser executado:** a simulação no Wokwi, a [API Python tipada](backend/README.md) e o [dashboard React/TypeScript](dashboard/README.md). O backend e a interface ficam em pastas separadas. O servidor mantém histórico Postgres e CRUD de acompanhamentos. A conexão do Wokwi à nuvem e as integrações configuráveis precisam ser verificadas separadamente; o estado de cada uma é informado pela API.
+**O que já pode ser executado:** a simulação no Wokwi, a [API Python tipada](backend/README.md) e o [dashboard React/TypeScript](dashboard/README.md). O backend e a interface ficam em pastas separadas. O servidor mantém histórico Postgres e CRUD de acompanhamentos. O Wokwi envia leituras ao Render por HTTPS; cada reinício da simulação exige carregar a chave de ingestão na sessão. MQTT e FIWARE têm configuração própria e seu estado é informado pela API. Veja o [registro de validação](docs/backend-validation.md).
 
 ## API e dashboard
 
@@ -59,7 +59,7 @@ STATUS
 
 **Resultado esperado:** OLED com “Sem alteração detectada”, LED verde e JSON no Serial contendo `"state":"NO_CHANGE"` e `"assessment_available":true`. Mensagens de inicialização, renovação da amostra e confirmação são esperadas antes de estabilizar.
 
-O indicador `OFF` da rede é esperado neste teste. A conexão foi desativada para observar o comportamento local; mesmo habilitada, a configuração atual ainda aponta para um broker não provisionado.
+O indicador `OFF` da rede é esperado neste teste: a conexão foi desativada para observar o comportamento local. Para enviar ao Render, abra o [dashboard publicado](https://water-n-assurance-dashboard.onrender.com/) e siga a seção **Enviar leituras ao dashboard do Render** do [guia do firmware](firmware/wokwi/README.md). A chave `INGEST_TOKEN` é carregada pelo Serial somente na sessão; não deve ser colocada no código público.
 
 ### Faça os primeiros experimentos
 
@@ -260,18 +260,18 @@ O protótipo está disponível no [Wokwi](https://wokwi.com/projects/48041638270
 | Pesquisa exploratória | Primeiras 18 respostas analisadas; coleta em andamento. |
 | Software & Total Experience Design | Apresentação de 16 slides preparada e revisada fora deste repositório. |
 | Storytelling e Inspiração Empreendedora | A desenvolver. |
-| Edge Computing & Computer Systems | Firmware da revisão 3 registrado em 12/11 com 69 autotestes aprovados. API Python tipada, persistência Postgres e dashboard separado implementados em 16/11. Configuração da conexão Wokwi/nuvem, vídeo e avaliação com dados públicos são etapas próprias. |
+| Edge Computing & Computer Systems | Firmware com 69 autotestes aprovados na nova compilação de 17/11; transporte HTTPS ao Render confirmado. API Python tipada, Postgres e dashboard separado publicados. A demonstração FIWARE/IoT Cloud, o vídeo e a avaliação com dados públicos continuam pendentes. |
 | Computational Thinking with Python | A implementar. |
 | Differentiated Problem Solving | Modelagem e relatório a desenvolver conforme as questões da avaliação. |
 | Front-end Design e Web Development | Dashboard React/TypeScript com histórico e CRUD implementado. Conferir os requisitos restantes e preparar as entregas separadas. |
 
 ## Reprodução e validação
 
-O [guia do firmware](firmware/wokwi/README.md) explica os oito arquivos necessários, as bibliotecas, o circuito e como reconstruir o projeto no Wokwi. O [roteiro de testes](firmware/wokwi/TESTES.md) detalha os cenários e diferencia resultados esperados dos resultados registrados anteriormente.
+O [guia do firmware](firmware/wokwi/README.md) explica os nove arquivos necessários, as bibliotecas, o circuito e como reconstruir o projeto no Wokwi. O [roteiro de testes](firmware/wokwi/TESTES.md) detalha os cenários e diferencia resultados esperados dos resultados registrados anteriormente.
 
-A revisão 3 foi registrada em 12/11/2026 com **69 autotestes aprovados e zero falhas**. A atualização da documentação em 14/11/2026 conferiu as instruções contra o código, sem repetir a execução do Wokwi. Novas execuções devem registrar seu próprio resumo, versões e evidências.
+Em **17/11/2026**, a versão com HTTPS compilou no Wokwi e repetiu os **69 autotestes, sem falhas**. Leituras produzidas pelo ESP32 simulado foram aceitas pela API publicada e persistidas no Postgres. O [registro de validação](docs/backend-validation.md) distingue essa integração dos testes anteriores e dos cenários ainda pendentes.
 
-A rede continua usando `localhost:1883` como configuração provisória. A decisão e o alarme do aparelho funcionam localmente. Para implementar a comunicação real, seguir o [guia de backend para Linux](docs/gsBackendLinux.md).
+O firmware envia `telemetry` e `event` por HTTPS à API Python do Render, com filas, retentativas e confirmação de aceitação. A decisão e o alarme funcionam localmente mesmo sem internet. O [guia de backend para Linux](docs/gsBackendLinux.md) explica o transporte e as integrações adicionais.
 
 ## Próximas etapas
 

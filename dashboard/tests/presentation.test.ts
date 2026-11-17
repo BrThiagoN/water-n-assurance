@@ -47,12 +47,21 @@ test("leituras antigas ou inválidas não aparecem como valores atuais", () => {
   assert.equal(visibleValue(undefined, false), "—");
 });
 
-test("a comunicação fica antiga pelo tempo de recebimento", () => {
-  const sample = reading(0);
-  const at = Date.parse(sample.received_at);
-  assert.equal(isStale(sample.received_at, 20, at + 10_000), false);
-  assert.equal(isStale(sample.received_at, 20, at + 21_000), true);
-  assert.equal(isStale(undefined, 20, at), true);
+test("a comunicacao usa a idade do servidor e continua envelhecendo sem respostas", () => {
+  assert.equal(isStale(2_000, 20, 10_000), false);
+  assert.equal(isStale(2_000, 20, 19_000), true);
+  assert.equal(isStale(21_000, 20, 0), true);
+  assert.equal(isStale(null, 20, 0), true);
+  assert.equal(isStale(undefined, 20, 0), true);
+});
+
+test("a validade independe do relogio de parede do computador", (t) => {
+  for (const skew of [-10_800_000, 10_800_000]) {
+    t.mock.method(Date, "now", () => Date.UTC(2026, 10, 17) + skew);
+    assert.equal(isStale(1_000, 20, 5_000), false);
+    assert.equal(isStale(1_000, 20, 20_000), true);
+    t.mock.restoreAll();
+  }
 });
 
 test("o gráfico não inventa valores nem conecta trechos inválidos", () => {

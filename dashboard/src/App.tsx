@@ -14,17 +14,21 @@ import { isStale } from "./presentation.ts";
 export function App() {
   const [device, setDevice] = useState("vigia-sim-01");
   const [selectedEvent, setSelectedEvent] = useState("");
-  const [now, setNow] = useState(Date.now());
+  const [tick, setTick] = useState(performance.now());
   const { data, loading, error, refresh } = useMonitor(device);
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    const timer = window.setInterval(() => setTick(performance.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
   const reading = data?.current.current ?? null;
+  const now = data
+    ? Date.parse(data.status.server_time) +
+      Math.max(0, tick - data.statusObservedAt)
+    : Date.now();
   const stale = isStale(
-    reading?.received_at,
+    data?.current.communication.age_ms,
     data?.current.communication.threshold_seconds ?? 20,
-    now,
+    data ? tick - data.currentObservedAt : 0,
   );
   const selectEvent = (id: string): void => {
     setSelectedEvent(id);

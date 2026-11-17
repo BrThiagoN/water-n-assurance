@@ -1,6 +1,6 @@
 # Vigia d’Água — protótipo ESP32 no Wokwi
 
-Este diretório espelha os arquivos do [protótipo público no Wokwi](https://wokwi.com/projects/480416382701050881), revisão 3. Ele reúne o código, o diagrama, as dependências e uma captura do circuito.
+Este diretório espelha os arquivos do [protótipo público no Wokwi](https://wokwi.com/projects/480416382701050881), com transporte HTTPS para a API Python. Ele reúne o código, o diagrama, as dependências e uma captura do circuito.
 
 ## Equipe
 
@@ -53,7 +53,20 @@ Você precisa de um navegador com internet. Para experimentar a simulação pron
 4. Procure a linha `[TEST] SUMMARY passed=69 failed=0 result=PASS`, referência da revisão 3. Se o resumo indicar falha, interrompa os experimentos e examine as linhas `FAIL`.
 5. Use a preparação abaixo para obter uma condição inicial conhecida.
 
-O teste local funciona com a rede em `OFF`. O host de rede continua provisório; uma mensagem de MQTT indisponível não significa que os sensores ou a classificação local falharam.
+O teste local funciona com a rede em `OFF` e sem credencial. A decisão, o display e o alarme não dependem da API.
+
+### Enviar leituras ao dashboard do Render
+
+1. Abra o [dashboard publicado](https://water-n-assurance-dashboard.onrender.com/). A primeira consulta pode demorar enquanto o serviço gratuito da API inicia.
+2. Inicie o Wokwi e confira os autotestes. O destino em `config.h` é `https://water-n-assurance.onrender.com/api/v1/ingest`.
+3. Na conta do Render da equipe, abra o serviço da API → **Environment** e copie o valor de `INGEST_TOKEN`. Não use `ADMIN_TOKEN`.
+4. No **campo de entrada do Serial Monitor**, envie `NET TOKEN <valor copiado>` e pressione Enter. Substitua o marcador pela chave, sem os sinais `< >`. Em seguida envie `TEST NET ON` se a rede foi desligada durante um teste.
+5. Aguarde Wi-Fi, sincronização de relógio e a confirmação `[NET] HTTPS 201: persistencia confirmada pelo backend Python.` Uma repetição idempotente pode retornar 200.
+6. O dashboard consulta a API a cada dez segundos. Confira o ponto `vigia-sim-01`, o horário de recebimento e o estado. Para um cenário controlado, envie `TEST FLOW 6` e `TEST OPTICAL 40`; depois da confirmação local, o painel deve mostrar **Atenção**.
+
+A chave fica somente na RAM da sessão e não é impressa pelo firmware. **Não cole a chave no código, no GitHub, em capturas ou no vídeo.** Parar/reiniciar a simulação apaga a chave; é necessário digitá-la novamente. `NET CLEAR` também a apaga. `RESET` reinicia apenas o contexto da medição e preserva a credencial da sessão.
+
+O envio usa HTTPS com verificação do certificado pelo bundle público WE1 + GTS Root R4 em `https_ca.h`; o relógio é sincronizado para validar TLS. O `time_synced: false` do contrato continua indicando que não há timestamp UTC da medição. O servidor registra seu próprio horário de recebimento. A intermediária WE1 foi conferida contra uma conexão TLS validada do serviço em 17/11/2026; usá-la como âncora evita uma verificação P-384 lenta no simulador. GTS Root R4 permanece como alternativa. Uma troca de cadeia ou vencimento exige conferir e atualizar o bundle, mantendo a validação de hostname e certificado. As filas e retentativas ficam numa tarefa separada; a confirmação de envio exige a resposta de aceitação da API após a transação no Postgres.
 
 ## 2. Preparar uma condição inicial conhecida
 
@@ -118,7 +131,7 @@ A forma mais curta é abrir o [projeto existente](https://wokwi.com/projects/480
 
 Para começar com um projeto vazio, abra o [template Arduino ESP32](https://wokwi.com/projects/new/esp32). Substitua `sketch.ino` e `diagram.json` pelos arquivos do repo e crie os arquivos adicionais no editor, mantendo seus nomes exatos.
 
-Em qualquer um dos caminhos, substitua o conteúdo das abas pelos **oito arquivos da mesma revisão do GitHub**:
+Em qualquer um dos caminhos, substitua o conteúdo das abas pelos **nove arquivos da mesma revisão do GitHub**:
 
 | Arquivo | Conteúdo que deve ser copiado |
 |---|---|
@@ -127,7 +140,8 @@ Em qualquer um dos caminhos, substitua o conteúdo das abas pelos **oito arquivo
 | [edge_core.h](edge_core.h) | Validação, filtro, estados e alarme. |
 | [self_tests.h](self_tests.h) | Autotestes do motor. |
 | [network.h](network.h) | Contrato da camada de rede. |
-| [network.cpp](network.cpp) | Encoders, filas e MQTT. |
+| [network.cpp](network.cpp) | Encoders, filas, HTTPS e retentativas. |
+| [https_ca.h](https_ca.h) | CA pública para verificar o certificado HTTPS; não contém credenciais. |
 | [diagram.json](diagram.json) | Diagrama e ligações do circuito. |
 | [libraries.txt](libraries.txt) | Dependências do projeto. |
 
@@ -143,13 +157,12 @@ O arquivo `libraries.txt` do repo lista:
 OneWire
 DallasTemperature
 U8g2
-ArduinoMqttClient
 ArduinoJson
 ```
 
 Confira se essas bibliotecas aparecem no **Library Manager**. É possível adicioná-las pela busca do gerenciador; ele cria/atualiza `libraries.txt`. A simulação web usa esse arquivo para resolver as dependências. [Bibliotecas no Wokwi](https://docs.wokwi.com/guides/libraries).
 
-As versões dessas cinco bibliotecas ainda não estão fixadas no arquivo. Para uma reprodução com versões exatas, registrar o core e as versões que compilarem e passarem nos testes antes de fixá-las. Não há uma configuração pronta de Arduino CLI ou PlatformIO neste repo.
+As versões dessas quatro bibliotecas ainda não estão fixadas no arquivo. HTTPClient e WiFiClientSecure pertencem ao core ESP32. Para uma reprodução com versões exatas, registrar o core e as versões que compilarem e passarem nos testes antes de fixá-las. Não há uma configuração pronta de Arduino CLI ou PlatformIO neste repo.
 
 ### 3.4. Salvar, iniciar e conferir
 
@@ -160,7 +173,7 @@ As versões dessas cinco bibliotecas ainda não estão fixadas no arquivo. Para 
 5. Repita os quatro estados no [roteiro de testes](TESTES.md).
 6. Guarde o link da sua cópia e o commit do GitHub usado na reprodução.
 
-Se apenas o código de uma aba for atualizado, outras abas antigas podem deixar o projeto incompatível. Use os oito arquivos da mesma revisão.
+Se apenas o código de uma aba for atualizado, outras abas antigas podem deixar o projeto incompatível. Use os nove arquivos da mesma revisão.
 
 ## 4. Como usar os controles do circuito
 
@@ -192,16 +205,17 @@ Enviar cada linha com Enter. O firmware aceita letras maiúsculas ou minúsculas
 | `TEST STALE ON` / `OFF` | Interrompe/retoma a atualização do lote de leituras. |
 | `TEST PULSE 100 1` | Injeta o índice 100 por uma amostra. |
 | `TEST NET OFF` / `TEST NET ON` | Desabilita/habilita tentativas de comunicação, mantendo a lógica local. |
+| `NET TOKEN <chave>` / `NET CLEAR` | Carrega/apaga a credencial de ingestão somente na sessão. A chave diferencia maiúsculas e minúsculas. |
 
 `TEST FAULT ON` e `TEST FAULT OFF` são atalhos para a falha óptica. Desligar uma falha por comando não corrige uma chave física que continue na posição de falha.
 
-No JSON de `STATUS`, o estado aparece como `state`. No payload MQTT de telemetria, o campo correspondente é `assessment_state`; são saídas diferentes. Consulte `network.cpp` para o contrato de transporte.
+No JSON de `STATUS`, o estado aparece como `state`. No payload HTTPS de telemetria, o campo correspondente é `assessment_state`; são saídas diferentes. Consulte `network.cpp` para o contrato de transporte.
 
 ## 6. Solução de problemas
 
 | Situação | O que conferir |
 |---|---|
-| Erro “arquivo não encontrado” ou referência indefinida | Confira os oito arquivos, nomes e extensões; `network.cpp` também precisa estar no projeto. |
+| Erro “arquivo não encontrado” ou referência indefinida | Confira os nove arquivos, nomes e extensões; `network.cpp` e `https_ca.h` também precisam estar no projeto. |
 | Erro de biblioteca | Confira `libraries.txt` e o Library Manager; copie o nome exato da dependência. |
 | Resumo com `FAIL` ou OLED “Falha nos testes” | Localize a primeira linha `FAIL`, registre o erro e confira se todos os arquivos vieram da mesma revisão. |
 | Serial Monitor sem comandos | Inicie a simulação, foque a entrada do monitor e envie a linha com Enter. `HELP` deve receber resposta. |
@@ -211,17 +225,22 @@ No JSON de `STATUS`, o estado aparece como `state`. No payload MQTT de telemetri
 | Potenciômetro parece não responder | Desative seu override com `TEST OPTICAL OFF` ou `TEST FLOW OFF`. |
 | Normalizou, mas o buzzer continua | Reconheça o aviso pendente com o botão Silenciar ou `MUTE`. A normalização não reconhece o alarme. |
 | Som silenciado, mas LED continua amarelo/vermelho | Esse comportamento é esperado: reconhecer o som não muda a condição medida. |
-| `OFF` ou MQTT indisponível | A rede ainda está configurada para `localhost:1883`; testar a simulação local não exige backend. |
-| `TEST NET ON` não conecta | O comando habilita tentativas. Ele não cria um broker nem troca o host provisório. |
+| `OFFLINE` sem dados no painel | Confira `NET TOKEN`, `TEST NET ON`, Wi-Fi e as mensagens `[NET]`. Reiniciar a simulação apaga a chave. |
+| HTTPS 401 | Recarregue o `INGEST_TOKEN` do mesmo serviço Render, preservando a capitalização. |
+| HTTPS 400/422 | Confira se todos os arquivos são da mesma revisão e se o dispositivo é autorizado na API. |
+| Erro TLS ou conexão encerrada | Confira relógio, CA, internet e velocidade da simulação. O firmware tenta novamente sem interromper a decisão local. |
+| Painel indica comunicação antiga | O servidor não recebeu uma leitura recente. Não confundir o último estado recebido com uma medição atual. |
 | Copiou o projeto, mas perdeu os ajustes | Entre na sua conta e salve a cópia; registre o link usado. |
 
 ## 7. Backend no Linux e limites da reprodução
 
-O [guia do backend](../../backend/README.md) explica a API, o fluxo Node-RED sem editor e o histórico Postgres, com Docker Compose para Linux/WSL e Blueprint do Render. A entrada HTTPS exige configurar o transporte e a credencial do dispositivo. MQTT e FIWARE ficam opcionais até seus servidores serem configurados; o painel mostra essa situação.
+O [guia do backend](../../backend/README.md) explica a API Python tipada e o histórico Postgres, com Docker Compose para Linux/WSL e Blueprint do Render. A interface fica separada em [`dashboard/`](../../dashboard/README.md). MQTT e FIWARE são integrações adicionais que exigem seus próprios servidores; o estado informado pela API distingue essas configurações.
 
 A reprodução descrita neste arquivo é da **simulação**. Os potenciômetros não são sondas de água; o protótipo não foi calibrado com instrumentos físicos, não comprova potabilidade e não substitui análise laboratorial.
 
-O Wokwi público é a simulação principal; este diretório é o espelho versionado. O roteiro foi conferido contra o código em 14/11/2026, sem uma nova execução da simulação nesta atualização. Para registrar uma reprodução real, siga a seção final de [TESTES.md](TESTES.md).
+O diagrama usa `cpuFrequency: "max"` para concluir TLS antes de o servidor encerrar a negociação. O relógio da simulação pode avançar mais devagar que o tempo real; os intervalos do motor continuam baseados em `millis()`. O OLED transmite somente quando seu bitmap muda, mantendo a atualização do estado, LED e som; isso reduz o custo da emulação durante TLS.
+
+O Wokwi público é a simulação principal; este diretório é o espelho versionado. A versão HTTPS foi compilada em 17/11/2026 e passou em 69 autotestes; a ingestão no Render foi confirmada com mensagens produzidas nessa simulação. Veja o [registro da integração](../../docs/backend-validation.md). Para registrar uma reprodução real, siga a seção final de [TESTES.md](TESTES.md).
 
 ## 8. Entrega acadêmica
 

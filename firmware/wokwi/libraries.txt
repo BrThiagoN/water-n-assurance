@@ -1,6 +1,5 @@
 OneWire
 DallasTemperature
 U8g2
-ArduinoMqttClient
 ArduinoJson
 

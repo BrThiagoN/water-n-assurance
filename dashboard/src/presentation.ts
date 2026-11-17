@@ -47,14 +47,16 @@ export const clockTime = (date: string): string =>
 export const number = (value: number): string =>
   new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(value);
 
+// A idade vem do servidor; o tempo adicional usa performance.now().
+// O relogio de parede do computador pode estar adiantado ou atrasado.
 export function isStale(
-  receivedAt: string | undefined,
+  serverAgeMs: number | null | undefined,
   thresholdSeconds: number,
-  now: number,
+  elapsedMs: number,
 ): boolean {
   return (
-    !receivedAt ||
-    now - new Date(receivedAt).getTime() > thresholdSeconds * 1000
+    serverAgeMs == null ||
+    serverAgeMs + Math.max(0, elapsedMs) > thresholdSeconds * 1000
   );
 }
 

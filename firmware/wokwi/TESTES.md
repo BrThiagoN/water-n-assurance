@@ -133,9 +133,9 @@ O pico usa a contagem de amostras, não segundos de relógio. A base óptica fix
 3. Conferir que o estado e o aviso local mudam mesmo com `network=OFFLINE`.
 4. Enviar `TEST NET ON`.
 
-O último comando apenas habilita as tentativas de conexão. Com o host ainda em `localhost:1883`, **não é esperado que a revisão atual alcance um backend**.
+O último comando habilita as tentativas de conexão. O envio exige carregar `INGEST_TOKEN` com `NET TOKEN <chave>` no Serial, conforme o [guia do firmware](README.md). A credencial não deve constar no código nem no registro do teste.
 
-A chegada ao servidor, persistência em SQLite, atualização do FIWARE e apresentação no painel só poderão ser verificadas após a implementação descrita no [guia de Linux](../../docs/gsBackendLinux.md). Um teste local ou uma confirmação do broker não comprova esse caminho completo.
+Para verificar a integração, aguarde a confirmação HTTPS da API após gravação no **Postgres**. No [dashboard do Render](https://water-n-assurance-dashboard.onrender.com/), confira o horário de recebimento e altere `TEST OPTICAL 40`, depois `80`, aguardando filtro e confirmação entre cenários. Confira a falha óptica e a volta para `20`. Desative a rede e confirme que a comunicação fica antiga sem apresentar o último valor como atual; reative e confira a recuperação. Registre boot, sequência, estados e horários sem registrar tokens. FIWARE é uma integração adicional: a confirmação HTTPS não comprova sua execução.
 
 ## 7. Entradas incorretas e limpeza
 

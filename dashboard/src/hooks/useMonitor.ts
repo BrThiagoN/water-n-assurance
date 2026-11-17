@@ -10,6 +10,8 @@ import type { z } from "zod";
 
 export interface MonitorData {
   current: z.infer<typeof currentSchema>;
+  currentObservedAt: number;
+  statusObservedAt: number;
   readings: z.infer<typeof readingsSchema>["items"];
   events: z.infer<typeof eventsSchema>["items"];
   status: z.infer<typeof statusSchema>;
@@ -36,17 +38,25 @@ export function useMonitor(device: string): {
         const path = `/api/v1/devices/${encodeURIComponent(device)}`;
         const options = { signal: controller.signal };
         const [current, readings, events, status] = await Promise.all([
-          request(`${path}/current`, currentSchema, options),
+          request(`${path}/current`, currentSchema, options).then((result) => ({
+            result,
+            observedAt: performance.now(),
+          })),
           request(`${path}/telemetry?limit=200`, readingsSchema, options),
           request(`${path}/events?limit=20`, eventsSchema, options),
-          request("/api/v1/status", statusSchema, options),
+          request("/api/v1/status", statusSchema, options).then((result) => ({
+            result,
+            observedAt: performance.now(),
+          })),
         ]);
         if (!controller.signal.aborted) {
           setData({
-            current,
+            current: current.result,
+            currentObservedAt: current.observedAt,
+            statusObservedAt: status.observedAt,
             readings: readings.items,
             events: events.items,
-            status,
+            status: status.result,
           });
           setError(null);
         }

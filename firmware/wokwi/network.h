@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "edge_core.h"
 
-// Transporte preparado para um broker futuro. Não há servidor/backend incluído.
+// Transporte HTTPS para a API Python, com CA e credencial apenas em RAM.
 // Toda a API abaixo é rápida e não acessa sockets no loop de aquisição.
 namespace net {
 
@@ -45,14 +45,16 @@ void offer(const Snapshot& snapshot, bool stateChanged);
 // Liga/desliga somente o transporte; não altera estados, sensores ou alertas.
 // A operação de socket já em curso pode terminar na task antes da desconexão.
 void setEnabled(bool enabled);
+// Aceita 32..128 caracteres ASCII sem espaços; vazio apaga a chave da sessão.
+bool setIngestToken(const char* token);
 bool online();
 uint32_t droppedEvents();
 
-// Número de mensagens confirmadas por PUBACK MQTT (telemetria + eventos).
-// Não significa que um backend persistiu dados ou que um painel os mostrou.
+// Número de respostas HTTP 200/201 da API após persistir/identificar duplicata.
+// Não comprova, por si só, que uma pessoa consultou os dados no dashboard.
 uint32_t sentCount();
 
-// Exercita os encoders reais e relê seu JSON, sem iniciar Wi-Fi/MQTT.
+// Exercita os encoders reais e relê seu JSON, sem iniciar Wi-Fi/HTTPS.
 // Acrescenta resultados aos contadores recebidos; não os reinicializa.
 // Chamar na bateria de testes, antes de begin(). Retorna o resultado DESTA
 // bateria, independentemente de falhas anteriores nos contadores globais.

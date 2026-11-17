@@ -28,15 +28,9 @@ constexpr char ALARM_POLICY[] = "continuous-until-ack";
 constexpr char DEVICE_ID[] = "vigia-sim-01";
 constexpr char WIFI_SSID[] = "Wokwi-GUEST";
 constexpr char WIFI_PASSWORD[] = "";
-// Placeholder solicitado pelo usuario. No ESP32, localhost e o proprio ESP32,
-// nao o computador. Trocar pelo endereco alcancavel do broker quando existir.
-constexpr char NETWORK_HOST[] = "localhost";
-constexpr uint16_t MQTT_PORT = 1883;
-constexpr char MQTT_USERNAME[] = "";
-constexpr char MQTT_PASSWORD[] = "";
+constexpr char HTTPS_INGEST_URL[] = "https://water-n-assurance.onrender.com/api/v1/ingest";
 constexpr uint32_t TELEMETRY_INTERVAL_MS = 5000;
 constexpr uint32_t NETWORK_RETRY_MS = 5000;
-// Sem TLS somente para o placeholder local/sintetico. Backend real exigira
-// configurar transporte, autenticacao e certificado conforme o servidor.
+// Chave carregada em RAM com NET TOKEN <chave>, nunca no projeto publico.
 }  // namespace Config
 

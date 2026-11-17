@@ -67,6 +67,7 @@ const integrationSchema = z.object({
   connected: z.boolean(),
 });
 export const statusSchema = z.object({
+  server_time: z.iso.datetime({ offset: true }),
   devices: z.array(z.string()),
   simulated: z.literal(true),
   integrations: z.object({

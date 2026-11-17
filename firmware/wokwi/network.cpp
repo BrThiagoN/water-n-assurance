@@ -1,9 +1,11 @@
 #include "network.h"
 #include "config.h"
+#include "https_ca.h"
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <ArduinoMqttClient.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <WiFi.h>
 #include <atomic>
 #include <cmath>
@@ -11,31 +13,23 @@
 #include <cstring>
 #include <limits>
 #include <type_traits>
-#include <sys/socket.h>
-#include <sys/time.h>
+#include <time.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
 
-// Config.h fornece os seguintes nomes no namespace Config:
-// NETWORK_HOST, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, WIFI_SSID,
-// WIFI_PASSWORD, DEVICE_ID, TELEMETRY_INTERVAL_MS e NETWORK_RETRY_MS.
-// NETWORK_HOST="localhost" é um placeholder solicitado, NÃO um endereço de
-// notebook no Wokwi. O gateway público não alcança localhost/LAN do usuário.
-// Este adapter não provisiona backend e não depende de ThingsBoard.
-// Porta 1883/WiFiClient é MQTT sem TLS, somente contrato de demonstração local.
-// Antes de tráfego real: broker alcançável, autenticação e WiFiClientSecure/CA.
+// HTTPS com certificado verificado. A chave de ingestao existe somente em RAM,
+// carregada pelo Serial; nunca fica no projeto publico. Rede roda em task propria.
 
 namespace net {
 namespace {
 
-constexpr uint32_t kSocketTimeoutMs = 2000;
 constexpr uint32_t kMaxRetryMs = 30000;
 constexpr uint32_t kLoopDelayMs = 20;
 constexpr uint32_t kEventIntervalMs = 200;
 constexpr UBaseType_t kEventQueueLength = 16;
 constexpr size_t kPayloadCapacity = 3072;
-constexpr uint32_t kTaskStackBytes = 12288;
+constexpr uint32_t kTaskStackBytes = 16384;
 
 struct SnapshotEnvelope {
   Snapshot value;
@@ -54,7 +48,10 @@ QueueHandle_t snapshotQueue = nullptr;
 QueueHandle_t eventQueue = nullptr;
 std::atomic<bool> started(false);
 std::atomic<bool> enabled(true);
-std::atomic<bool> brokerOnline(false);
+std::atomic<bool> backendOnline(false);
+std::atomic<bool> credentialChanged(false);
+portMUX_TYPE tokenMutex = portMUX_INITIALIZER_UNLOCKED;
+char ingestToken[129] = {};
 std::atomic<uint32_t> changeGeneration(0);
 std::atomic<uint32_t> dropped(0);
 std::atomic<uint32_t> sent(0);
@@ -139,37 +136,6 @@ void addChannels(TDocument& document, const Snapshot& snapshot, bool event) {
     }
   }
 }
-
-// A unidade de setTimeout mudou entre versões do core ESP32. Usamos o overload
-// connect(..., timeout_ms), disponível nos cores 2.x e 3.x, e timeout POSIX
-// explícito de leitura/escrita. Resolução DNS ainda segue os limites do core;
-// por isso inclusive DNS/conexão ficam fora do loop de medição.
-class BoundedWiFiClient : public WiFiClient {
- public:
-  using WiFiClient::connect;
-
-  int connect(const char* host, uint16_t port) override {
-    const int result = WiFiClient::connect(host, port, kSocketTimeoutMs);
-    configureSocket(result);
-    return result;
-  }
-
-  int connect(IPAddress address, uint16_t port) override {
-    const int result = WiFiClient::connect(address, port, kSocketTimeoutMs);
-    configureSocket(result);
-    return result;
-  }
-
- private:
-  void configureSocket(int connected) {
-    if (!connected) return;
-    timeval timeout;
-    timeout.tv_sec = 2;
-    timeout.tv_usec = 0;
-    setSocketOption(SO_RCVTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout));
-    setSocketOption(SO_SNDTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout));
-  }
-};
 
 template <typename TDocument>
 size_t finishJson(TDocument& document, char* payload, size_t capacity) {
@@ -270,164 +236,178 @@ size_t encodeEvent(const PendingEvent& event, char* payload, size_t capacity) {
   return finishJson(document, payload, capacity);
 }
 
-bool publishPayload(MqttClient& mqtt, const char* topic,
-                    const char* payload, size_t length) {
-  if (length == 0 || !mqtt.connected()) return false;
-  // Tamanho conhecido evita o buffer de apenas 256 bytes do modo sem size.
-  if (!mqtt.beginMessage(topic, static_cast<unsigned long>(length), false, 1, false) ||
-      mqtt.write(reinterpret_cast<const uint8_t*>(payload), length) != length ||
-      !mqtt.endMessage()) {
-    mqtt.stop();
-    brokerOnline.store(false);
-    return false;
-  }
-  sent.fetch_add(1);
-  return true;
+
+bool copyToken(char* destination, size_t capacity) {
+  portENTER_CRITICAL(&tokenMutex);
+  snprintf(destination, capacity, "%s", ingestToken);
+  portEXIT_CRITICAL(&tokenMutex);
+  return destination[0] != '\0';
 }
 
-void networkTask(void*) {
-  BoundedWiFiClient socket;
-  MqttClient mqtt(socket);
-  mqtt.setConnectionTimeout(kSocketTimeoutMs);  // ArduinoMqttClient: ms.
-  mqtt.setKeepAliveInterval(15000);             // ArduinoMqttClient: ms.
-  mqtt.setCleanSession(true);
-  if (Config::MQTT_USERNAME[0] != '\0' || Config::MQTT_PASSWORD[0] != '\0') {
-    mqtt.setUsernamePassword(Config::MQTT_USERNAME, Config::MQTT_PASSWORD);
+class HttpsTransport {
+ public:
+  bool publish(char* payload, size_t length, const char* token) {
+    if (!length || !token[0] || WiFi.status() != WL_CONNECTED) return false;
+    if (!begun) {
+      client.setCACert(VIGIA_HTTPS_ROOT_CA);
+      client.setHandshakeTimeout(30);  // Segundos; certificado sempre verificado.
+      http.setConnectTimeout(30000);
+      http.setTimeout(15000);
+      http.setReuse(true);
+      if (!http.begin(client, Config::HTTPS_INGEST_URL)) return false;
+      begun = true;
+    }
+    http.addHeader("Content-Type", "application/json", false, true);
+    http.addHeader("Authorization", String("Bearer ") + token, false, true);
+    const int status = http.POST(reinterpret_cast<uint8_t*>(payload), length);
+    bool accepted = false;
+    if ((status == 200 || status == 201) && http.getSize() <= 2048) {
+      const String body = http.getString();  // Drena a resposta antes de reutilizar TCP.
+#if ARDUINOJSON_VERSION_MAJOR >= 7
+      JsonDocument acknowledgment;
+#else
+      DynamicJsonDocument acknowledgment(512);
+#endif
+      accepted = !deserializeJson(acknowledgment, body) &&
+        acknowledgment["accepted"].is<bool>() && acknowledgment["accepted"].as<bool>();
+    }
+    backendOnline.store(accepted);
+    if (accepted) {
+      sent.fetch_add(1);
+      Serial.printf("[NET] HTTPS %d: persistencia confirmada pelo backend Python.\n", status);
+    } else {
+      char tlsMessage[128] = {};
+      const int tlsError = client.lastError(tlsMessage, sizeof(tlsMessage));
+      Serial.printf("[NET] HTTPS %d (%s), TLS %d (%s), epoch=%lld; retry agendado.\n",
+                    status, HTTPClient::errorToString(status).c_str(), tlsError,
+                    tlsMessage, static_cast<long long>(time(nullptr)));
+      disconnect();
+    }
+    return accepted;
   }
 
-  WiFi.mode(WIFI_STA);
-  WiFi.setAutoReconnect(false);  // Retentativas explicitamente agendadas aqui.
+  void disconnect() {
+    http.end();
+    client.stop();
+    begun = false;
+    backendOnline.store(false);
+  }
 
+ private:
+  WiFiClientSecure client;
+  HTTPClient http;
+  bool begun = false;
+};
+
+void networkTask(void*) {
+  HttpsTransport transport;
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(false);
   SnapshotEnvelope latest = {};
   PendingEvent pending = {};
-  bool haveSnapshot = false;
-  bool havePending = false;
-  bool wasEnabled = true;
-  bool forceLatest = true;
-  uint32_t lastSentGeneration = 0;
-  uint32_t lastTelemetryMs = 0;
-  uint32_t lastEventMs = 0;
-  uint32_t wifiRetryMs = baseRetry();
-  uint32_t mqttRetryMs = baseRetry();
+  bool haveSnapshot = false, havePending = false;
+  bool wasEnabled = true, forceLatest = true, clockConfigured = false;
+  bool missingTokenReported = false, clockWaitReported = false;
+  uint32_t lastSentGeneration = 0, lastTelemetryMs = 0, lastEventMs = 0;
+  uint32_t wifiRetryMs = baseRetry(), httpRetryMs = baseRetry();
   uint32_t lastWifiAttemptMs = static_cast<uint32_t>(millis()) - wifiRetryMs;
-  uint32_t lastMqttAttemptMs = static_cast<uint32_t>(millis()) - mqttRetryMs;
-  char telemetryTopic[96];
-  char eventsTopic[96];
-  snprintf(telemetryTopic, sizeof(telemetryTopic),
-           "water-n-assurance/v1/%s/telemetry", Config::DEVICE_ID);
-  snprintf(eventsTopic, sizeof(eventsTopic),
-           "water-n-assurance/v1/%s/events", Config::DEVICE_ID);
+  uint32_t lastHttpFailureMs = 0;
+  bool retryPending = false;
   char payload[kPayloadCapacity];
-
-  Serial.printf("[NET] Preparado para MQTT %s:%u; backend ainda a configurar.\n",
-                Config::NETWORK_HOST, static_cast<unsigned int>(Config::MQTT_PORT));
+  char token[129];
+  Serial.printf("[NET] Destino HTTPS: %s\n", Config::HTTPS_INGEST_URL);
+  Serial.println("[NET] Use NET TOKEN <chave> no Serial. A chave nao sera impressa nem salva.");
 
   for (;;) {
     const uint32_t now = millis();
     SnapshotEnvelope update;
     if (xQueueReceive(snapshotQueue, &update, 0) == pdTRUE) {
-      latest = update;
-      haveSnapshot = true;
+      latest = update; haveSnapshot = true;
     }
-
-    const bool currentlyEnabled = enabled.load();
-    if (!currentlyEnabled) {
+    if (credentialChanged.exchange(false)) {
+      transport.disconnect();
+      forceLatest = true; retryPending = false; missingTokenReported = false;
+      httpRetryMs = baseRetry(); backendOnline.store(false);
+    }
+    if (!enabled.load()) {
       if (wasEnabled) {
-        mqtt.stop();
+        transport.disconnect();
         WiFi.disconnect();
         Serial.println("[NET] Transporte desativado; avaliacao local continua.");
       }
-      brokerOnline.store(false);
-      wasEnabled = false;
-      vTaskDelay(pdMS_TO_TICKS(kLoopDelayMs));
-      continue;
+      backendOnline.store(false); wasEnabled = false;
+      vTaskDelay(pdMS_TO_TICKS(kLoopDelayMs)); continue;
     }
     if (!wasEnabled) {
-      wifiRetryMs = mqttRetryMs = baseRetry();
+      wifiRetryMs = httpRetryMs = baseRetry();
       lastWifiAttemptMs = now - wifiRetryMs;
-      lastMqttAttemptMs = now - mqttRetryMs;
-      forceLatest = true;
-      wasEnabled = true;
+      forceLatest = true; wasEnabled = true; retryPending = false;
     }
-
+    if (!copyToken(token, sizeof(token))) {
+      backendOnline.store(false);
+      if (!missingTokenReported) {
+        Serial.println("[NET] Aguardando chave de demonstracao via NET TOKEN; decisao local ativa.");
+        missingTokenReported = true;
+      }
+      vTaskDelay(pdMS_TO_TICKS(kLoopDelayMs)); continue;
+    }
     if (WiFi.status() != WL_CONNECTED) {
-      brokerOnline.store(false);
-      if (mqtt.connected()) mqtt.stop();
-      forceLatest = true;
+      backendOnline.store(false); forceLatest = true;
       if (elapsed(now, lastWifiAttemptMs, wifiRetryMs)) {
         lastWifiAttemptMs = now;
         WiFi.begin(Config::WIFI_SSID, Config::WIFI_PASSWORD, 6);
         wifiRetryMs = nextRetry(wifiRetryMs);
       }
-      vTaskDelay(pdMS_TO_TICKS(kLoopDelayMs));
-      continue;
+      vTaskDelay(pdMS_TO_TICKS(kLoopDelayMs)); continue;
     }
     wifiRetryMs = baseRetry();
-
-    if (!mqtt.connected()) {
-      brokerOnline.store(false);
-      forceLatest = true;
-      if (haveSnapshot && elapsed(now, lastMqttAttemptMs, mqttRetryMs)) {
-        char clientId[64];
-        snprintf(clientId, sizeof(clientId), "%s-%s", latest.value.deviceId,
-                 latest.value.bootId);
-        mqtt.setId(clientId);
-        lastMqttAttemptMs = now;
-        if (mqtt.connect(Config::NETWORK_HOST, Config::MQTT_PORT)) {
-          mqttRetryMs = baseRetry();
-          brokerOnline.store(true);
-          Serial.println("[NET] Broker MQTT conectado; sem garantia de backend/painel.");
-        } else {
-          Serial.printf("[NET] MQTT indisponivel (erro %d); retry agendado.\n",
-                        mqtt.connectError());
-          mqttRetryMs = nextRetry(mqttRetryMs);
-        }
+    if (!clockConfigured) {
+      configTime(0, 0, "time.google.com", "pool.ntp.org");
+      clockConfigured = true;
+    }
+    // O relogio serve a verificacao TLS. O contrato continua sem UTC da medicao.
+    if (time(nullptr) < 1700000000) {
+      if (!clockWaitReported) {
+        Serial.println("[NET] Sincronizando relogio para validar certificado TLS.");
+        clockWaitReported = true;
       }
-      vTaskDelay(pdMS_TO_TICKS(kLoopDelayMs));
-      continue;
+      vTaskDelay(pdMS_TO_TICKS(kLoopDelayMs)); continue;
     }
-
-    mqtt.poll();
-    if (!mqtt.connected()) {
-      brokerOnline.store(false);
-      vTaskDelay(pdMS_TO_TICKS(kLoopDelayMs));
-      continue;
+    if (retryPending && !elapsed(now, lastHttpFailureMs, httpRetryMs)) {
+      vTaskDelay(pdMS_TO_TICKS(kLoopDelayMs)); continue;
     }
-    brokerOnline.store(true);
-
-    // Sempre publicar o estado MAIS RECENTE antes de drenar eventos antigos.
     const bool urgent = latest.changeGeneration != lastSentGeneration;
-    if (enabled.load() && haveSnapshot && (forceLatest || urgent ||
+    if (haveSnapshot && (forceLatest || urgent ||
         elapsed(now, lastTelemetryMs, Config::TELEMETRY_INTERVAL_MS))) {
       const size_t size = encodeSnapshot(latest.value, payload, sizeof(payload));
-      if (size == 0) {
-        Serial.println("[NET] Snapshot excedeu capacidade JSON; nao publicado.");
-        lastTelemetryMs = now;
-        forceLatest = false;
+      if (!size) {
+        Serial.println("[NET] Snapshot excedeu capacidade JSON; nao enviado.");
+        lastTelemetryMs = now; forceLatest = false;
         lastSentGeneration = latest.changeGeneration;
-      } else if (publishPayload(mqtt, telemetryTopic, payload, size)) {
-        lastTelemetryMs = millis();
-        lastSentGeneration = latest.changeGeneration;
-        forceLatest = false;
+      } else if (transport.publish(payload, size, token)) {
+        lastTelemetryMs = millis(); lastSentGeneration = latest.changeGeneration;
+        forceLatest = false; retryPending = false; httpRetryMs = baseRetry();
+      } else {
+        retryPending = true; lastHttpFailureMs = millis();
+        httpRetryMs = nextRetry(httpRetryMs);
+        vTaskDelay(pdMS_TO_TICKS(kLoopDelayMs)); continue;
       }
     }
-
-    if (enabled.load() && mqtt.connected() &&
-        elapsed(now, lastEventMs, kEventIntervalMs)) {
-      if (!havePending) {
-        havePending = xQueueReceive(eventQueue, &pending, 0) == pdTRUE;
-      }
+    // Eventos antigos nunca substituem o snapshot atual no backend.
+    if (enabled.load() && elapsed(millis(), lastEventMs, kEventIntervalMs)) {
+      if (!havePending) havePending = xQueueReceive(eventQueue, &pending, 0) == pdTRUE;
       if (havePending) {
         const size_t size = encodeEvent(pending, payload, sizeof(payload));
-        if (size == 0) {
-          dropped.fetch_add(1);
-          havePending = false;
+        if (!size) {
+          dropped.fetch_add(1); havePending = false;
           Serial.println("[NET] Evento excedeu capacidade JSON; descarte contado.");
-        } else if (publishPayload(mqtt, eventsTopic, payload, size)) {
-          havePending = false;
-          lastEventMs = millis();
+        } else if (transport.publish(payload, size, token)) {
+          havePending = false; lastEventMs = millis();
+          retryPending = false; httpRetryMs = baseRetry();
+        } else {
+          retryPending = true; lastHttpFailureMs = millis();
+          httpRetryMs = nextRetry(httpRetryMs);
         }
-        // Falha de envio conserva pending para retry com o mesmo event_id.
       }
     }
     vTaskDelay(pdMS_TO_TICKS(kLoopDelayMs));
@@ -481,12 +461,24 @@ void offer(const Snapshot& snapshot, bool stateChanged) {
   if (xQueueSendToBack(eventQueue, &event, 0) != pdTRUE) dropped.fetch_add(1);
 }
 
-void setEnabled(bool value) {
-  enabled.store(value);
-  if (!value) brokerOnline.store(false);
+bool setIngestToken(const char* value) {
+  const size_t length = value ? strlen(value) : 0;
+  if (length && (length < 32 || length > 128)) return false;
+  for (size_t i = 0; i < length; ++i)
+    if (value[i] < '!' || value[i] > '~') return false;
+  portENTER_CRITICAL(&tokenMutex);
+  snprintf(ingestToken, sizeof(ingestToken), "%s", value ? value : "");
+  portEXIT_CRITICAL(&tokenMutex);
+  credentialChanged.store(true);
+  return true;
 }
 
-bool online() { return brokerOnline.load() && enabled.load(); }
+void setEnabled(bool value) {
+  enabled.store(value);
+  if (!value) backendOnline.store(false);
+}
+
+bool online() { return backendOnline.load() && enabled.load(); }
 uint32_t droppedEvents() { return dropped.load(); }
 uint32_t sentCount() { return sent.load(); }
 

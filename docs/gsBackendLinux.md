@@ -1,6 +1,6 @@
 # water n' assurance — backend Python no Linux/WSL
 
-> Vigia d’Água · revisão de 16/11/2026.
+> Vigia d’Água · revisão de 17/11/2026.
 
 O servidor fica em [`backend/`](../backend/README.md), com Python 3.12, FastAPI, Pydantic, SQLAlchemy e Postgres. A interface React/TypeScript fica em [`dashboard/`](../dashboard/README.md), separada na raiz. A decisão e os avisos do dispositivo permanecem no ESP32.
 
@@ -8,7 +8,7 @@ O servidor fica em [`backend/`](../backend/README.md), com Python 3.12, FastAPI,
 
 ```mermaid
 flowchart LR
-    ESP["ESP32 no Wokwi"] -->|"Transporte ainda a configurar"| API["API Python tipada"]
+    ESP["ESP32 no Wokwi"] -->|"HTTPS autenticado, schema v2"| API["API Python tipada"]
     MQTT["Broker MQTT opcional"] --> API
     API --> PG["Postgres: estado, histórico e acompanhamentos"]
     UI["dashboard/: React + TypeScript"] -->|"HTTPS e JSON"| API
@@ -68,13 +68,13 @@ npm run build
 
 O teste HTTP de demonstração gera dados sintéticos identificados como teste. Não confundir esses registros com uma mensagem realmente produzida pelo ESP32. O [registro de validação](backend-validation.md) diferencia as verificações executadas das integrações pendentes.
 
-## 5. Conectar o Wokwi posteriormente
+## 5. Conectar o Wokwi ao Render
 
-O firmware atual usa MQTT e ainda aponta para `localhost:1883`. Esse endereço não alcança um servidor do notebook a partir do gateway público do Wokwi.
+O firmware usa `POST https://water-n-assurance.onrender.com/api/v1/ingest`, sem depender de um broker MQTT. A biblioteca HTTPClient do ESP32 envia o JSON ao mesmo endpoint usado pelos testes da API. Não trocar esse endereço por `localhost`: o gateway público do Wokwi não alcança o servidor local do notebook.
 
-Há dois caminhos de transporte: configurar um broker alcançável e as credenciais MQTT ou adaptar o firmware para `POST /api/v1/ingest` via HTTPS. Trocar apenas o hostname MQTT por uma URL HTTPS não implementa essa mudança. Preservar filas, retentativas, identificadores e a execução independente da lógica de borda; validar TLS sem desabilitar a verificação do certificado.
+Abra o [dashboard publicado](https://water-n-assurance-dashboard.onrender.com/) e inicie o [Wokwi](https://wokwi.com/projects/480416382701050881). Na conta Render da equipe, copie `INGEST_TOKEN` do serviço da API e envie `NET TOKEN <chave>` no Serial Monitor, substituindo o marcador pelo valor. Se necessário envie `TEST NET ON`. A chave é sensível a maiúsculas e minúsculas e fica somente na RAM; ao reiniciar a simulação é necessário carregá-la novamente. Não usar `ADMIN_TOKEN` nem salvar a chave nas abas públicas.
 
-O corpo JSON continua em `schema_version: 2`, com `telemetry` ou `event`. O token de ingestão é separado do administrativo. Qualquer segredo escrito em um Wokwi público fica visível; usar somente credenciais restritas de demonstração no ambiente acadêmico, sem credenciais de conta ou de produção.
+O corpo JSON continua em `schema_version: 2`, com `telemetry` ou `event`. O transporte preserva filas, identificadores, retentativas e execução independente da lógica local. TLS verifica a CA pública e usa o relógio sincronizado; não há `setInsecure()`. A linha `[NET] HTTPS 201: persistencia confirmada pelo backend Python.` indica aceitação após gravação; 200 pode indicar repetição. O dashboard consulta a API a cada dez segundos. O [guia do firmware](../firmware/wokwi/README.md) explica testes e diagnóstico. MQTT permanece como entrada opcional da API, desligada enquanto não houver broker.
 
 ## 6. FIWARE e Render
 

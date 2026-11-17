@@ -9,7 +9,7 @@ Revisão de **16/11/2026**. Os resultados abaixo pertencem à implementação Py
 - Os testes cobrem validação estrita de tipos, estados e canais; duplicatas; ingestões concorrentes; ordenação e boots anteriores; conservação de dados ao reinicializar o repositório; outbox FIWARE com HTTP simulado; adaptador MQTT; autenticação; histórico; CSV; CRUD; CORS; limite de tamanho e ausência de interface na API.
 - Um registro legado de evento que omitia o índice filtrado foi preservado e marcado como incompleto, sem criar um número. Um teste de regressão verifica esse caso; a ingestão nova continua rejeitando esse formato.
 - Smoke test HTTP em container com Postgres real: aprovado, incluindo autenticação, persistência, duplicatas, evento sem regressão do estado e CSV. Apenas mensagens sintéticas identificadas como teste foram usadas.
-- Dashboard: **4 testes aprovados**, checagem TypeScript estrita e build Vite aprovados. A auditoria npm no momento da instalação informou zero vulnerabilidades.
+- Dashboard: **5 testes aprovados**, checagem TypeScript estrita e build Vite aprovados. A auditoria npm no momento da instalação informou zero vulnerabilidades.
 - Navegador integrado com API local e Postgres: criação, edição, conclusão e exclusão de uma anotação de teste confirmadas na interface. O evento original permaneceu no histórico.
 - Layout conferido na largura padrão do navegador e em 390 px. Na verificação de celular, o conteúdo não ultrapassou a largura disponível. Leituras antigas ficaram identificadas como último estado recebido, com valores atuais ocultos.
 
@@ -20,3 +20,11 @@ O teste FIWARE automatizado usa respostas HTTP simuladas; isso não comprova exe
 O registro anterior de 69 testes do firmware pertence à revisão anterior do dispositivo e não é substituído pelos testes Python. Uma nova compilação ou alteração de transporte exige repetir a verificação do Wokwi.
 
 Nenhum teste desta revisão mede água, precisão metrológica, contaminação ou potabilidade. Os dados de demonstração não são resultados de ensaios físicos ou testes com moradores.
+
+## Integração Wokwi → Render — 17/11/2026
+
+O Wokwi público compilou com 69 autotestes aprovados e zero falhas. A sessão `boot_id=1879de1c` enviou mensagens reais do ESP32 simulado para `https://water-n-assurance.onrender.com/api/v1/ingest`. O Serial confirmou respostas HTTPS 201 após a gravação. A API pública retornou, entre outras, a sequência 26 em `NO_CHANGE` e a sequência 91 em `ATTENTION`, com índice óptico 40, comunicação recente e horário de recebimento do servidor. Esses dados são de simulação, não medições físicas.
+
+A captura de rede mostrou o servidor encerrando TCP antes de a CPU emulada terminar TLS. A correção usa o limite de CPU `max`, evita transmitir bitmaps repetidos ao OLED, mantém uma conexão HTTPS reutilizável e verifica o certificado pelo bundle WE1/GTS Root R4. A intermediária WE1 foi extraída de uma conexão com validação TLS do serviço e seu fingerprint SHA-256 conferido (`1dfc1605fbad358d8bc844f76d15203fac9ca5c1a79fd4857ffaf2864fbebf96`). Hostname, assinatura e validade continuam verificados. O token só existe na RAM da sessão; nenhum token foi incluído no projeto público.
+
+Foi encontrado também um desvio de três horas entre o relógio do computador e o servidor. O painel calculava a validade pelo relógio local e ocultava valores recém-recebidos. A correção usa `communication.age_ms` da API e o tempo monotônico desde a resposta; os filtros de período usam o horário do servidor. O teste de regressão cobre relógio local adiantado e atrasado, além do envelhecimento sem novas respostas. Cinco testes do dashboard e o build TypeScript/Vite passaram.

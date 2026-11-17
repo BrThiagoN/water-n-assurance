@@ -7,3 +7,5 @@ O apoio incluiu componentes React, TypeScript estrito, estilos, cliente HTTP, sc
 A validação inclui build, testes automatizados e conferência no navegador com a API e Postgres locais, incluindo criação, edição, conclusão e exclusão de uma anotação de teste. O layout foi conferido também em largura de celular. Isso não equivale a teste de compreensão com moradores, medição física da água ou prova de integração de um Wokwi real.
 
 A equipe precisa revisar os textos, entender os hooks e o contrato da API e conferir os requisitos de cada disciplina antes de apresentar o trabalho.
+
+Em 17/11/2026, o diagnóstico da integração identificou um desvio de três horas no relógio do computador. O apoio incluiu corrigir a validade das leituras e os filtros para usar a referência temporal da API, com tempo monotônico no navegador e teste de regressão.

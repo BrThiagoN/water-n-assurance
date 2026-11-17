@@ -7,7 +7,7 @@
  */
 /*
  * Prototipo SIMULADO. Indice optico 0..100 nao e NTU nem potabilidade.
- * Regras locais continuam sem rede. Backend MQTT ainda nao configurado.
+ * Regras locais continuam sem rede. Backend Python via HTTPS verificado.
  * Apoio de IA: documentado em README.md.
  */
 #include <Arduino.h>
@@ -69,7 +69,7 @@ enum class SoundPattern : uint8_t { NONE, FAULT };
 SoundPattern soundPattern = SoundPattern::NONE;
 uint32_t soundStartedAt = 0;
 bool piezoOn = false;
-char commandBuffer[96];
+char commandBuffer[192];
 size_t commandLength = 0;
 bool commandOverflow = false;
 
@@ -177,6 +177,21 @@ void drawStateIcon(AssessmentState state) {
   }
 }
 
+// Evita retransmitir o mesmo bitmap I2C cinco vezes por segundo.
+// LED, som e aquisicao continuam com seus proprios intervalos.
+void flushDisplayIfChanged() {
+  static uint8_t previous[1024];
+  static bool initialized = false;
+  const uint8_t* current = oled.getBufferPtr();
+  // O construtor F do SSD1306 128x64 usa um framebuffer de 1024 bytes.
+  constexpr size_t size = sizeof(previous);
+  if (!initialized || memcmp(previous, current, size) != 0) {
+    oled.sendBuffer();
+    memcpy(previous, current, size);
+    initialized = true;
+  }
+}
+
 void refreshUi(uint32_t now) {
   View v = controller.view();
   uint8_t r = 0, g = 0, b = 0;
@@ -197,7 +212,7 @@ void refreshUi(uint32_t now) {
   if (!selfTestsPassed) {
     textAt(0, 27, "Falha nos testes");
     textAt(0, 43, "Confira o Serial");
-    oled.sendBuffer();
+    flushDisplayIfChanged();
     return;
   }
   drawStateIcon(v.state);
@@ -241,7 +256,7 @@ void refreshUi(uint32_t now) {
     snprintf(row, sizeof(row), "Opt:%.0f Q:%.1fL/m", v.filteredOptical, lastInput.flowLpm);
     textAt(0, 62, muted && (now / 2000) % 2 == 0 ? "Som silenciado" : row);
   }
-  oled.sendBuffer();
+  flushDisplayIfChanged();
 }
 
 bool readingsAreValid(uint32_t now, const View& v) {
@@ -425,6 +440,7 @@ void printHelp() {
   Serial.println("TEST FAULT TEMP/OPTICAL/FLOW/PRESSURE ON/OFF | TEST PULSE <0..100> <1..10 amostras>");
   Serial.println("TEST OPTICAL <0..100>/OFF | TEST FLOW <0..20>/OFF");
   Serial.println("Overrides sao TESTES; OFF volta ao potenciometro. NET ON habilita rede.");
+  Serial.println("NET TOKEN <chave> | NET CLEAR: credencial somente em RAM, nunca impressa.");
 }
 
 bool parseValue(const String& text, float maximum, float& result) {
@@ -436,12 +452,27 @@ bool parseValue(const String& text, float maximum, float& result) {
 
 void processCommand(char* input) {
   String cmd(input);
-  cmd.trim(); cmd.toUpperCase();
+  cmd.trim();
+  String credentialCommand = cmd.substring(0, 10);
+  credentialCommand.toUpperCase();
+  if (credentialCommand == "NET TOKEN ") {
+    const String token = cmd.substring(10);
+    Serial.println(net::setIngestToken(token.c_str()) ?
+      "[NET] Credencial carregada somente nesta sessao." :
+      "[NET] Credencial invalida: use 32..128 caracteres sem espacos.");
+    return;  // Nunca imprimir a chave, nem converter suas letras.
+  }
+  cmd.toUpperCase();
   uint32_t now = millis();
   if (cmd.length() == 0) return;
   if (cmd == "HELP") printHelp();
   else if (cmd == "STATUS") printStatus(now, "status");
   else if (cmd == "MUTE") silenceSound();
+  else if (cmd == "NET CLEAR") {
+    net::setIngestToken("");
+    Serial.println("[NET] Credencial removida da sessao; decisao local continua.");
+    return;
+  }
   else if (cmd == "RESET") {
     injectStale = opticalOverrideOn = flowOverrideOn = false;
     injectedFaultMask = lastOverrideMask = pulseRemaining = 0;
@@ -542,7 +573,7 @@ void setup() {
   buttonRaw = buttonStable = digitalRead(Config::PIN_MUTE);
   net::setEnabled(Config::NETWORK_ENABLED);
   net::begin();
-  Serial.printf("[NET] Backend pendente: MQTT %s:%u; decisao local independente.\n", Config::NETWORK_HOST, Config::MQTT_PORT);
+  Serial.printf("[NET] API Python: %s; decisao local independente.\n", Config::HTTPS_INGEST_URL);
   printHelp();
   refreshUi(millis());
 }
@@ -570,6 +601,6 @@ void loop() {
   }
   // Cede um tick ao escalonador, sem esperas de sensor/rede/som neste loop.
   // Os intervalos de trabalho continuam controlados por millis().
-  vTaskDelay(1);
+  vTaskDelay(pdMS_TO_TICKS(10));
 }
 
