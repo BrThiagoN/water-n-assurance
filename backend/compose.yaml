@@ -16,7 +16,9 @@ services:
     build:
       context: .
       target: runtime
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
       DATABASE_URL: postgresql://vigia:vigia_local@db:5432/vigia
       DATABASE_SSL: disable
