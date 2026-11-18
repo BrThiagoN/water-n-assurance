@@ -168,4 +168,4 @@ O Render termina o HTTPS público. A conexão interna do banco usa `DATABASE_SSL
 | Vitor Assis Florenzano | RM572192 |
 | Raul Moreira Andrade | RM571042 |
 
-Uso de IA e limites da validação: [AI.md](AI.md) e [registro de validação](../docs/backend-validation.md).
+Uso de IA e limites da validação: [AI.md](AI.md). Para a execução da integração simulada e os cenários de reprodução, consulte o [roteiro de testes do firmware](../firmware/wokwi/TESTES.md).

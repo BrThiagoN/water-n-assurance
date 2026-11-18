@@ -178,7 +178,7 @@ Os autotestes rodam no início com `Config::RUN_SELF_TESTS=true`. Se as dependê
 - Rede desligada: painel identificou comunicação antiga e ocultou os valores atuais. Rede reativada: novos envios HTTPS 201 e painel novamente atualizado.
 - Cenário final: óptica 20, vazão 6 e `MUTE`, com o dispositivo em `NO_CHANGE`. Os demais ensaios antigos não foram repetidos integralmente.
 
-Detalhes, sequências e limites: [registro de validação](../../docs/backend-validation.md). Não incluir tokens no vídeo ou nas evidências.
+Para os checks automatizados do backend e seus requisitos, consulte [tipagem e testes](../../backend/README.md#tipagem-e-testes). Não incluir tokens no vídeo ou nas evidências.
 
 ## 9. Como registrar sua própria reprodução
 

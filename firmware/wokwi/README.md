@@ -234,13 +234,13 @@ No JSON de `STATUS`, o estado aparece como `state`. No payload HTTPS de telemetr
 
 ## 7. Backend no Linux e limites da reprodução
 
-O [guia do backend](../../backend/README.md) explica a API Python tipada e o histórico Postgres, com Docker Compose para Linux/WSL e Blueprint do Render. A interface fica separada em [`dashboard/`](../../dashboard/README.md). No Render publicado, FIWARE Orion e Mongo executam internamente junto à API; o contexto atual é consultado pelo dashboard. O Postgres guarda o histórico. MQTT permanece opcional. Consulte o [guia do FIWARE](../../infra/fiware/README.md) e o [roteiro do vídeo de Edge](../../docs/gsEdge-video.md).
+O [guia do backend](../../backend/README.md) explica a API Python tipada e o histórico Postgres, com Docker Compose para Linux/WSL e Blueprint do Render. A interface fica separada em [`dashboard/`](../../dashboard/README.md). No Render publicado, FIWARE Orion e Mongo executam internamente junto à API; o contexto atual é consultado pelo dashboard. O Postgres guarda o histórico. MQTT permanece opcional. Consulte o [guia do FIWARE](../../infra/fiware/README.md) e o [roteiro do vídeo de Edge](VIDEO-EDGE.md).
 
 A reprodução descrita neste arquivo é da **simulação**. Os potenciômetros não são sondas de água; o protótipo não foi calibrado com instrumentos físicos, não comprova potabilidade e não substitui análise laboratorial.
 
 O diagrama usa `cpuFrequency: "max"` para concluir TLS antes de o servidor encerrar a negociação. O relógio da simulação pode avançar mais devagar que o tempo real; os intervalos do motor continuam baseados em `millis()`. O OLED transmite somente quando seu bitmap muda, mantendo a atualização do estado, LED e som; isso reduz o custo da emulação durante TLS.
 
-O Wokwi público é a simulação principal; este diretório é o espelho versionado. A versão HTTPS foi compilada em 17/11/2026 e passou em 69 autotestes; a ingestão no Render foi confirmada com mensagens produzidas nessa simulação. Veja o [registro da integração](../../docs/backend-validation.md). Para registrar uma reprodução real, siga a seção final de [TESTES.md](TESTES.md).
+O Wokwi público é a simulação principal; este diretório é o espelho versionado. A versão HTTPS foi compilada em 17/11/2026 e passou em 69 autotestes; a ingestão no Render foi confirmada com mensagens produzidas nessa simulação. Para repetir os cenários e registrar uma nova reprodução, siga a seção final de [TESTES.md](TESTES.md).
 
 ## 8. Entrega acadêmica
 

@@ -56,4 +56,4 @@ No Wokwi, carregar a chave da sessão fora da gravação, iniciar a rede e alter
 
 O `render.yaml` usa runtime **Docker**, `infra/fiware/Dockerfile` e contexto da raiz. Sincronizar o Blueprint existente preserva o serviço, o banco e os tokens. Conferir que o plano continua **Free**, que `ORION_URL=http://127.0.0.1:1026` e que o deploy fica Live antes da gravação.
 
-Referências: [Orion oficial](https://fiware-orion.readthedocs.io/en/4.2.0/admin/install.html), [Render Free](https://render.com/docs/free). Os testes e as limitações efetivamente observados estão em [backend-validation.md](../../docs/backend-validation.md).
+Referências: [Orion oficial](https://fiware-orion.readthedocs.io/en/4.2.0/admin/install.html), [Render Free](https://render.com/docs/free). Para repetir os testes e consultar seus limites, veja [tipagem e testes do backend](../../backend/README.md#tipagem-e-testes) e o [roteiro de testes do firmware](../../firmware/wokwi/TESTES.md).

@@ -1,6 +1,6 @@
 # Vídeo e entrega de Edge — Vigia d’Água
 
-A integração técnica foi validada em 17/11/2026: Wokwi, API Python, Postgres, FIWARE Orion real e dashboard no Render gratuito. O [registro de validação](backend-validation.md) distingue os testes automatizados da leitura produzida pelo ESP32 simulado. **Ainda falta gravar/publicar o vídeo, conferir os links e fazer a entrega pela equipe.**
+A integração técnica foi validada em 17/11/2026: Wokwi, API Python, Postgres, FIWARE Orion real e dashboard no Render gratuito. As instruções para repetir os checks automatizados estão no [README do backend](../../backend/README.md#tipagem-e-testes), e os cenários do ESP32 simulado no [roteiro de testes](TESTES.md). **Ainda falta gravar/publicar o vídeo, conferir os links e fazer a entrega pela equipe.**
 
 ## Preparar antes de gravar
 
@@ -44,13 +44,13 @@ Reservar dez segundos de margem. A divisão acima é uma sugestão; o enunciado 
 | `TEST NET OFF` e uma mudança local | O aparelho continua avaliando e avisando. Se mostrar o painel, aguardar a idade superar 20 s: ele identifica comunicação antiga. |
 | `TEST NET ON` | Retomada HTTPS, contexto sincronizado e painel atualizado, sem apagar o histórico. |
 
-O [roteiro completo de testes](../firmware/wokwi/TESTES.md) inclui pico breve, ausência/retorno de fluxo, dados antigos e recuperação. Se mostrar um pico no vídeo, esperar o filtro renovar antes de afirmar que foi rejeitado. Apresentar somente cenários efetivamente executados.
+O [roteiro completo de testes](TESTES.md) inclui pico breve, ausência/retorno de fluxo, dados antigos e recuperação. Se mostrar um pico no vídeo, esperar o filtro renovar antes de afirmar que foi rejeitado. Apresentar somente cenários efetivamente executados.
 
 ## O que torna a integração verificável
 
 O ESP32 calcula o estado local e envia HTTPS. A API grava no Postgres; a outbox sincroniza a entidade `WaterMonitor` no Orion via NGSI-v2. O dashboard consulta a API, que usa o contexto do Orion quando ele corresponde ao snapshot persistido. Se houver atraso do broker, a API conserva o valor persistido e informa a origem `postgres`.
 
-Orion e Mongo executam internamente no mesmo serviço gratuito do Render. O Mongo guarda contexto reconstruível; o Postgres mantém o histórico. Uma reconstrução após reinício preserva a idade da última mensagem e não cria leitura recente. O [guia de infraestrutura](../infra/fiware/README.md) permite reproduzir esse conjunto no Linux/WSL.
+Orion e Mongo executam internamente no mesmo serviço gratuito do Render. O Mongo guarda contexto reconstruível; o Postgres mantém o histórico. Uma reconstrução após reinício preserva a idade da última mensagem e não cria leitura recente. O [guia de infraestrutura](../../infra/fiware/README.md) permite reproduzir esse conjunto no Linux/WSL.
 
 ## Entrega
 

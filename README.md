@@ -11,9 +11,9 @@ Projeto acadêmico desenvolvido para a **Global Solution CitizenTech 2026.2**, d
 | Experimentar o aparelho sem instalar ferramentas | Siga o teste rápido abaixo. |
 | Criar minha própria cópia usando os arquivos do GitHub | Veja o [guia de reprodução do firmware](firmware/wokwi/README.md). |
 | Repetir os estados, falhas e comandos | Abra o [roteiro de testes](firmware/wokwi/TESTES.md). |
-| Continuar o backend no Linux | Siga o [guia de Python, Postgres, MQTT e FIWARE](docs/gsBackendLinux.md). |
+| Continuar o backend no Linux | Siga o [guia de Python, Postgres, MQTT e FIWARE](backend/README.md). |
 
-**O que já pode ser executado:** a simulação no Wokwi, a [API Python tipada](backend/README.md) e o [dashboard React/TypeScript](dashboard/README.md). O backend e a interface ficam em pastas separadas. O servidor mantém histórico Postgres e CRUD de acompanhamentos. O Wokwi envia leituras ao Render por HTTPS; cada reinício da simulação exige carregar a chave de ingestão na sessão. O FIWARE Orion está ativo no mesmo serviço gratuito do Render e fornece o contexto atual ao dashboard; MQTT permanece opcional. Veja o [guia do FIWARE](infra/fiware/README.md) e o [roteiro do vídeo de Edge](docs/gsEdge-video.md). Veja o [registro de validação](docs/backend-validation.md).
+**O que já pode ser executado:** a simulação no Wokwi, a [API Python tipada](backend/README.md) e o [dashboard React/TypeScript](dashboard/README.md). O backend e a interface ficam em pastas separadas. O servidor mantém histórico Postgres e CRUD de acompanhamentos. O Wokwi envia leituras ao Render por HTTPS; cada reinício da simulação exige carregar a chave de ingestão na sessão. O FIWARE Orion está ativo no mesmo serviço gratuito do Render e fornece o contexto atual ao dashboard; MQTT permanece opcional. Veja o [guia do FIWARE](infra/fiware/README.md) e o [roteiro do vídeo de Edge](firmware/wokwi/VIDEO-EDGE.md).
 
 ## API e dashboard
 
@@ -93,8 +93,8 @@ cd water-n-assurance
 | [firmware/wokwi/](firmware/wokwi/README.md) | Código, circuito e instruções para reconstruir a simulação. |
 | [firmware/wokwi/libraries.txt](firmware/wokwi/libraries.txt) | Bibliotecas utilizadas pelo projeto no Wokwi. |
 | [firmware/wokwi/TESTES.md](firmware/wokwi/TESTES.md) | Comandos de teste, critérios de conferência e registro anterior da revisão 3. |
-| [docs/gsBackendLinux.md](docs/gsBackendLinux.md) | Arquitetura e ordem de implementação do backend no Linux. |
 | [backend/README.md](backend/README.md) | Executar a API Python, conferir a tipagem e os testes e configurar o Render. |
+| [firmware/wokwi/VIDEO-EDGE.md](firmware/wokwi/VIDEO-EDGE.md) | Preparar a demonstração de Edge e o roteiro do vídeo. |
 | [render.yaml](render.yaml) | Blueprint com Web Service e Postgres no plano Free do Render. |
 
 Clonar o repo baixa os arquivos. O firmware continua sendo executado pelo Wokwi no navegador, sem configuração pronta de Arduino CLI/PlatformIO. Para iniciar o backend, seguir [backend/README.md](backend/README.md); há execução por Docker Compose e por Python 3.12 com Postgres. A interface é iniciada separadamente pelo [guia do dashboard](dashboard/README.md).
@@ -269,16 +269,16 @@ O protótipo está disponível no [Wokwi](https://wokwi.com/projects/48041638270
 
 O [guia do firmware](firmware/wokwi/README.md) explica os nove arquivos necessários, as bibliotecas, o circuito e como reconstruir o projeto no Wokwi. O [roteiro de testes](firmware/wokwi/TESTES.md) detalha os cenários e diferencia resultados esperados dos resultados registrados anteriormente.
 
-Em **17/11/2026**, a versão com HTTPS compilou no Wokwi e repetiu os **69 autotestes, sem falhas**. Leituras produzidas pelo ESP32 simulado foram aceitas pela API publicada, persistidas no Postgres e sincronizadas com o FIWARE Orion real. A sessão `68f39ffc`, sequência 129, foi conferida em Atenção, índice 40, com `source: fiware-orion`, `matches_current: true` e comunicação recente; o dashboard exibiu os mesmos valores. A CI passou em 26 testes Python e no ensaio com Orion/Mongo reais. O [registro de validação](docs/backend-validation.md) distingue essa integração dos testes anteriores e dos cenários ainda pendentes.
+Em **17/11/2026**, a versão com HTTPS compilou no Wokwi e repetiu os **69 autotestes, sem falhas**. Leituras produzidas pelo ESP32 simulado foram aceitas pela API publicada, persistidas no Postgres e sincronizadas com o FIWARE Orion real. A sessão `68f39ffc`, sequência 129, foi conferida em Atenção, índice 40, com `source: fiware-orion`, `matches_current: true` e comunicação recente; o dashboard exibiu os mesmos valores. A CI passou em 26 testes Python e no ensaio com Orion/Mongo reais. Para repetir as verificações do backend e conhecer seus limites, siga a seção de [tipagem e testes](backend/README.md#tipagem-e-testes); os cenários do firmware estão em [TESTES.md](firmware/wokwi/TESTES.md).
 
-O firmware envia `telemetry` e `event` por HTTPS à API Python do Render, com filas, retentativas e confirmação de aceitação. A decisão e o alarme funcionam localmente mesmo sem internet. O [guia de backend para Linux](docs/gsBackendLinux.md) explica o transporte e as integrações adicionais.
+O firmware envia `telemetry` e `event` por HTTPS à API Python do Render, com filas, retentativas e confirmação de aceitação. A decisão e o alarme funcionam localmente mesmo sem internet. O [guia do backend](backend/README.md) explica o transporte e as integrações adicionais.
 
 ## Próximas etapas
 
 1. Dividir as frentes de trabalho e combinar formato de dados, unidades, identificadores e estados.
 2. Preparar o documento de marca, os slides e o videopitch de Storytelling.
 3. Ampliar os cenários de ruído e mudanças breves, mantendo os resultados de cada revisão do firmware.
-4. Gravar o vídeo de Edge com o caminho validado ESP32 → API Render → Postgres/Orion → painel, seguindo o [roteiro de até sete minutos](docs/gsEdge-video.md).
+4. Gravar o vídeo de Edge com o caminho validado ESP32 → API Render → Postgres/Orion → painel, seguindo o [roteiro de até sete minutos](firmware/wokwi/VIDEO-EDGE.md).
 5. Conferir a aplicação web, complementar os requisitos acadêmicos e manter um histórico real de commits significativos.
 6. Desenvolver o programa Python e a análise matemática de DPS em paralelo.
 7. Avaliar as séries públicas compatíveis, consolidar os registros e finalizar as entregas de cada disciplina.
