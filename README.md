@@ -1,19 +1,72 @@
 # water n' assurance
 
-**O Vigia d’Água é um monitor residencial da water n' assurance. O aparelho acompanha alguns parâmetros da água e apresenta avisos locais; a plataforma reúne o histórico para consulta.**
+<p align="center">
+  <strong>Vigia d’Água</strong><br>
+  Monitor residencial simulado para acompanhar mudanças nos parâmetros da água.
+</p>
 
-Projeto acadêmico desenvolvido para a **Global Solution CitizenTech 2026.2**, do curso de **Engenharia de Software da FIAP**, turma **1ESPV-2026**.
+<p align="center">
+  <a href="https://wokwi.com/projects/480416382701050881"><strong>▶ Abrir simulação no Wokwi</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://water-n-assurance-dashboard.onrender.com/">Ver dashboard</a>
+  &nbsp;·&nbsp;
+  <a href="firmware/wokwi/TESTES.md">Roteiro de testes</a>
+</p>
 
-## Comece por aqui
+<p align="center">
+  <img src="firmware/wokwi/assets/circuito-wokwi.png" alt="Circuito simulado do Vigia d’Água com ESP32, controles de entrada e indicadores" width="560">
+</p>
 
-| Quero... | Caminho |
+<p align="center"><sub>ESP32 · Wokwi · FastAPI · PostgreSQL · React/TypeScript · FIWARE Orion</sub></p>
+<p align="center"><sub>Global Solution CitizenTech 2026.2 · Engenharia de Software · FIAP · 1ESPV-2026</sub></p>
+
+## Descrição do projeto
+
+O **Vigia d’Água** usa um ESP32 simulado para observar temperatura, índice óptico relativo, vazão e pressão. O dispositivo valida e interpreta as entradas, mostra avisos no próprio aparelho e pode enviar leituras por HTTPS para uma API e um dashboard com histórico.
+
+> **Limite do protótipo:** os controles representam sensores simulados. O índice óptico é relativo, de 0 a 100; não é NTU nem um resultado de potabilidade. O projeto não substitui análise laboratorial.
+
+## Componentes utilizados
+
+| Bloco | Componentes | Uso no protótipo |
+|---|---|---|
+| Controle | ESP32 | Lê as entradas, aplica as regras e mantém a avaliação local. |
+| Entradas | DS18B20, potenciômetros de óptica/vazão/pressão e chave de falha | Simulam temperatura, índice relativo, circulação, pressão e falhas. |
+| Interface | OLED SSD1306, LED RGB, buzzer piezo e botão **Silenciar** | Apresentam o estado e permitem reconhecer ou reativar o aviso sonoro. |
+
+## Lógica de funcionamento
+
+**Entradas → validação por canal → filtro → decisão local → avisos e histórico.** A vazão precisa estar válida para avaliar a óptica. O índice passa por uma mediana de cinco amostras; mudanças exigem três confirmações novas. Os limites 30/60 e retornos 25/55 são didáticos e demonstram persistência e histerese.
+
+| Estado | Resposta do aparelho |
 |---|---|
-| Experimentar o aparelho sem instalar ferramentas | Siga o teste rápido abaixo. |
-| Criar minha própria cópia usando os arquivos do GitHub | Veja o [guia de reprodução do firmware](firmware/wokwi/README.md). |
-| Repetir os estados, falhas e comandos | Abra o [roteiro de testes](firmware/wokwi/TESTES.md). |
-| Continuar o backend no Linux | Siga o [guia de Python, Postgres, MQTT e FIWARE](backend/README.md). |
+| **Sem alteração detectada** | Texto e símbolo no OLED; LED verde. |
+| **Atenção** | Aviso no OLED; LED amarelo e buzzer. |
+| **Verifique** | Aviso no OLED; LED vermelho e buzzer. |
+| **Leitura indisponível** | Informa falha ou leitura antiga; não apresenta isso como normalidade. |
 
-**O que já pode ser executado:** a simulação no Wokwi, a [API Python tipada](backend/README.md) e o [dashboard React/TypeScript](dashboard/README.md). O backend e a interface ficam em pastas separadas. O servidor mantém histórico Postgres e CRUD de acompanhamentos. O Wokwi envia leituras ao Render por HTTPS; cada reinício da simulação exige carregar a chave de ingestão na sessão. O FIWARE Orion está ativo no mesmo serviço gratuito do Render e fornece o contexto atual ao dashboard; MQTT permanece opcional. Veja o [guia do FIWARE](infra/fiware/README.md) e o [roteiro do vídeo de Edge](firmware/wokwi/VIDEO-EDGE.md).
+A decisão e os avisos continuam funcionando sem internet. Quando a rede está habilitada e a chave da sessão foi carregada, o firmware envia as leituras à API.
+
+## Instruções para executar a simulação
+
+Você só precisa de um navegador com internet; não precisa instalar Arduino IDE, Node.js ou Docker para experimentar o projeto público.
+
+1. Abra a [simulação do Vigia d’Água no Wokwi](https://wokwi.com/projects/480416382701050881) e clique em **Iniciar**.
+2. Aguarde a compilação e abra o **Serial Monitor**. Confira `[TEST] SUMMARY passed=69 failed=0 result=PASS`.
+3. No campo de entrada do Serial Monitor, envie estes comandos **um por vez**, pressionando Enter após cada linha:
+
+```text
+RESET
+TEST NET OFF
+TEST FLOW 6
+TEST OPTICAL 20
+```
+
+4. Aguarde cerca de **15 segundos de simulação** e envie `STATUS`.
+
+**Resultado esperado:** OLED com “Sem alteração detectada”, LED verde e JSON com `"state":"NO_CHANGE"` e `"assessment_available":true`. A rede `OFF` é esperada nesse cenário: a avaliação acontece localmente.
+
+Para repetir outros estados, falhas e recuperações, siga o [roteiro de testes do firmware](firmware/wokwi/TESTES.md). Para enviar leituras ao serviço publicado, veja [como conectar o Wokwi ao dashboard](firmware/wokwi/README.md#enviar-leituras-ao-dashboard-do-render); a chave de ingestão fica só na sessão e não deve ser publicada.
 
 ## API e dashboard
 
@@ -34,50 +87,6 @@ npm run dev
 ```
 
 Consulte `http://localhost:8000/healthz` para conferir a API e abra `http://localhost:5173` para usar o dashboard. As instruções completas e os testes estão nos READMEs de cada pasta. Sem dados, a interface informa que aguarda leituras; não cria valores fictícios.
-
-## Teste rápido no Wokwi
-
-Você precisa de um navegador com internet. A simulação pronta dispensa instalar Arduino IDE, Node.js ou Docker no computador.
-
-1. Abra o [Vigia d’Água no Wokwi](https://wokwi.com/projects/480416382701050881).
-2. Clique em **iniciar a simulação**, no botão com o triângulo de reprodução, e aguarde a compilação.
-3. Abra o **Serial Monitor** e localize a linha de resumo dos autotestes. A revisão 3 tem como referência `[TEST] SUMMARY passed=69 failed=0 result=PASS`. Se houver `FAIL` ou erro de compilação, consulte o [guia de solução de problemas](firmware/wokwi/README.md).
-4. No campo de entrada do Serial Monitor, envie os comandos abaixo **um por vez**, confirmando cada linha com Enter. Não digite esses comandos no terminal do Linux.
-
-```text
-RESET
-TEST NET OFF
-TEST FLOW 6
-TEST OPTICAL 20
-```
-
-5. Aguarde cerca de **15 segundos de simulação**, mantendo a chave de falha na posição sem falha, e envie:
-
-```text
-STATUS
-```
-
-**Resultado esperado:** OLED com “Sem alteração detectada”, LED verde e JSON no Serial contendo `"state":"NO_CHANGE"` e `"assessment_available":true`. Mensagens de inicialização, renovação da amostra e confirmação são esperadas antes de estabilizar.
-
-O indicador `OFF` da rede é esperado neste teste: a conexão foi desativada para observar o comportamento local. Para enviar ao Render, abra o [dashboard publicado](https://water-n-assurance-dashboard.onrender.com/) e siga a seção **Enviar leituras ao dashboard do Render** do [guia do firmware](firmware/wokwi/README.md). A chave `INGEST_TOKEN` é carregada pelo Serial somente na sessão; não deve ser colocada no código público.
-
-### Faça os primeiros experimentos
-
-Partindo do teste rápido acima, envie cada comando, aguarde a estabilização e use `STATUS` para conferir:
-
-| Experimento | Comando no Serial | O que deve acontecer |
-|---|---|---|
-| Mudança moderada persistente | `TEST OPTICAL 40` | Após a confirmação, **Atenção**, LED amarelo e aviso sonoro. |
-| Mudança mais intensa persistente | `TEST OPTICAL 80` | Após a confirmação, **Verifique**, LED vermelho e aviso sonoro. |
-| Falha na entrada óptica | `TEST FAULT OPTICAL ON` | **Leitura indisponível**, com motivo de falha. |
-| Recuperação dessa entrada | `TEST FAULT OPTICAL OFF` | Nova estabilização e retorno ao estado correspondente à entrada ainda selecionada. |
-| Voltar a uma referência baixa | `TEST OPTICAL 20` | Retorno a **Sem alteração detectada** após filtro e confirmações; um alarme pendente continua exigindo reconhecimento. |
-
-Para as alterações ópticas, reserve cerca de 10 segundos de simulação; para recuperação e retorno à referência, reserve cerca de 15. Esses tempos são margens para o roteiro, não prazos garantidos nem limites sanitários.
-
-Pressione o botão **Silenciar** do circuito para reconhecer o aviso. Enquanto a alteração continuar confirmada, um segundo clique reativa o som. O comando `MUTE` apenas silencia; ele não substitui esse teste dos dois cliques.
-
-Ao terminar, envie `TEST OPTICAL OFF` e `TEST FLOW OFF` para devolver o controle aos potenciômetros. O [roteiro completo](firmware/wokwi/TESTES.md) explica preparação, resultados e recuperação de cada cenário.
 
 ## Clonar e continuar no Linux
 
